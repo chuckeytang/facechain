@@ -13,7 +13,7 @@ numpy==1.22.0
 protobuf==3.20.1
 timm
 scikit-image==0.19.3
-gradio
+gradio==3.41.0
 controlnet_aux==0.0.6
 mediapipe
 python-slugify

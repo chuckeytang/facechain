@@ -1578,9 +1578,9 @@ with gr.Blocks(css='style.css') as demo:
     from importlib.util import find_spec
     if find_spec('webui'):
         # if running as a webui extension, don't display banner self-advertisement
-        gr.Markdown("# <center> \N{fire} FaceChain Potrait Generation (\N{whale} [Paper cite it here](https://arxiv.org/abs/2308.14256) \N{whale})</center>")
+        gr.Markdown("# <center> \N{fire} FaceChain人像生成 (\N{whale} [Paper cite it here](https://arxiv.org/abs/2308.14256) \N{whale})</center>")
     else:
-        gr.Markdown("# <center> \N{fire} FaceChain Potrait Generation ([Github star it here](https://github.com/modelscope/facechain/tree/main) \N{whale},   [Paper](https://arxiv.org/abs/2308.14256) \N{whale},   [API](https://help.aliyun.com/zh/dashscope/developer-reference/facechain-quick-start) \N{whale},   [API's Example App](https://tongyi.aliyun.com/wanxiang/app/portrait-gallery) \N{whale})</center>")
+        gr.Markdown("# <center> \N{fire} FaceChain人像生成</center>")
     gr.Markdown("##### <center> 本项目仅供学习交流，请勿将模型及其制作内容用于非法活动或违反他人隐私的场景。(This project is intended solely for the purpose of technological discussion, and should not be used for illegal activities and violating privacy of individuals.)</center>")
     with gr.Tabs():
         with gr.TabItem('\N{rocket}人物形象训练(Train Digital Twin)'):
@@ -1597,6 +1597,6 @@ with gr.Blocks(css='style.css') as demo:
 if __name__ == "__main__":
     set_spawn_method()
     if os.path.exists("/.dockerenv"):
-        demo.queue(status_update_rate=1).launch(server_name="0.0.0.0", share=True)
+        demo.queue(status_update_rate=1).launch(server_name="0.0.0.0", server_port=6006, share=True)
     else:
-        demo.queue(status_update_rate=1).launch(share=True)
+        demo.queue(status_update_rate=1).launch(server_port=6006, share=True)
