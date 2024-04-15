@@ -1135,11 +1135,11 @@ def train_input():
         with gr.Row():
             with gr.Column():
                 with gr.Box():
-                    output_model_name = gr.Textbox(label="人物lora名称", value='person1', lines=1)
+                    output_model_name = gr.Textbox(label="人物lora名称", value='人物名1', lines=1)
                     base_model_name = gr.Dropdown(choices=['AI-ModelScope/stable-diffusion-v1-5',
                                                            SDXL_BASE_MODEL_ID],
                                                   value='AI-ModelScope/stable-diffusion-v1-5',
-                                                  label='基模型', visible=False)
+                                                  label='基模型')
                     gr.Markdown('训练图片')
                     instance_images = gr.Gallery()
                     with gr.Row():
@@ -1161,19 +1161,21 @@ def train_input():
                         使用说明：
                         ''')
                     gr.Markdown('''
-                        - 步骤1. 上传计划训练的图片, 1~10张头肩照(注意: 请避免图片中出现多人脸、脸部遮挡等情况, 否则可能导致效果异常)
-                        - 步骤2. 点击 [开始训练] , 启动形象定制化训练, 每张图片约需1.5分钟, 请耐心等待～
-                        - 步骤3. 切换至 [形象写真] , 生成你的风格照片<br/><br/>
+
+                        - Step 1. 上传计划训练的图片, 1~10张头肩照(注意: 请避免图片中出现多人脸、脸部遮挡等情况, 否则可能导致效果异常)
+                        - Step 2. 点击 [开始训练] , 启动形象定制化训练, 每张图片约需1.5分钟, 请耐心等待～
+                        - Step 3. 切换至 [形象写真] , 生成你的风格照片<br/><br/>
                         ''')
 
-        run_button = gr.Button('''开始训练
-        (等待上传图片加载显示出来再点, 否则会报错)... ''')
+        run_button = gr.Button('开始训练(等待上传图片加载显示出来再点, 否则会报错)... ')
+
 
         with gr.Box():
             gr.Markdown('''
             <center>请等待训练完成，请勿刷新或关闭页面。</center>
             ''')
             output_message = gr.Markdown()
+
         # with gr.Box():
         #     gr.Markdown('''
         #     碰到抓狂的错误或者计算资源紧张的情况下，推荐直接在[NoteBook](https://modelscope.cn/my/mynotebook/preset)上进行体验。
@@ -1207,7 +1209,7 @@ def inference_input():
                 for base_model in base_models:
                     base_model_list.append(BASE_MODEL_MAP[base_model['name']])
 
-                base_model_index = gr.Radio(label="基模型选择(Base model list)", choices=base_model_list, type="index", value=None, visible=False)
+                base_model_index = gr.Radio(label="基模型选择", choices=base_model_list, type="index", value=None)
                 
                 with gr.Row():
                     with gr.Column(scale=2):
@@ -1229,7 +1231,8 @@ def inference_input():
                 for pmodel in pose_models:
                     pmodels.append(pmodel['name'])
 
-                with gr.Accordion("高级选项(Advanced Options)", open=False):
+                lora_choice = "present"
+                with gr.Accordion("高级选项", open=False):
                     # upload one lora file and show the name or path of the file
                     with gr.Accordion("上传LoRA文件(Upload LoRA file)", open=False, visible=False):
                         lora_choice = gr.Dropdown(choices=["preset"], type="value", value="preset", label="LoRA文件(LoRA file)", visible=False)
@@ -1242,10 +1245,12 @@ def inference_input():
                             visible=False,
                         )
 
-                    out_img_size_list = ["512x512", "768x768", "1024x1024"]
-                    sr_img_size =  gr.Radio(label="输出分辨率选择", choices=out_img_size_list, type="index", value="768x768")
-                    cartoon_style_idx =  gr.Radio(label="动漫风格选择", choices=['2D人像卡通', '3D人像卡通化'], type="index")
+
+                    out_img_size_list = ["512x512", "768x768", "1024x1024", "2048x2048"]
+                    sr_img_size =  gr.Radio(label="输出分辨率选择(Output Image Size)", choices=out_img_size_list, type="index", value="512x512")
+                    cartoon_style_idx =  gr.Radio(label="动漫风格选择", choices=['2D人像卡通', '3D人像卡通化','无'], type="index")
                     with gr.Accordion("采样器选项", open=False, visible=False):
+
                         use_lcm_idx =  gr.Radio(label="是否使用LCM采样器", choices=['使用默认采样器', '使用LCM采样器'], type="index", value="使用默认采样器")
                         gr.Markdown('''
                         注意: 
@@ -1255,16 +1260,16 @@ def inference_input():
                         
                     pos_prompt = gr.Textbox(label="提示语(Prompt)", lines=3, 
                                             value=generate_pos_prompt(None, styles[0]['add_prompt_style']),
-                                            interactive=True)
+                                            interactive=True, visible=False)
                     neg_prompt = gr.Textbox(label="负向提示语(Negative Prompt)", lines=3,
                                             value="",
                                             interactive=True, visible=False)
                     if neg_prompt.value == '' :
                         neg_prompt.value = neg
                     multiplier_style = gr.Slider(minimum=0, maximum=1, value=0.25,
-                                                 step=0.05, label='风格权重')
+                                                 step=0.05, label='风格权重(Multiplier style)', visible=False)
                     multiplier_human = gr.Slider(minimum=0, maximum=1.2, value=0.95,
-                                                 step=0.05, label='形象权重')
+                                                 step=0.05, label='形象权重(Multiplier human)', visible=False)
                     
                     with gr.Accordion("姿态控制(Pose control)", open=False, visible=False):
                         with gr.Row():
@@ -1277,6 +1282,7 @@ def inference_input():
                 with gr.Box():
                     num_images = gr.Number(
                         label='生成图片数量', value=3, precision=1, minimum=1, maximum=6)
+
                     gr.Markdown('''
                     注意: 
                     - 最多支持生成6张图片!
@@ -1285,9 +1291,11 @@ def inference_input():
         with gr.Row():
             display_button = gr.Button('开始生成')   
             with gr.Column():
-                history_button = gr.Button('查看历史', visible=False)
+
+                history_button = gr.Button('查看历史')
                 load_history_text = gr.Text("load", visible=False)
-                delete_history_button = gr.Button('删除历史(Delete history)', visible=False)
+                delete_history_button = gr.Button('删除历史')
+
                 delete_history_text = gr.Text("delete", visible=False)
 
         with gr.Box():
@@ -1295,8 +1303,7 @@ def inference_input():
         with gr.Box():
             gr.Markdown('生成结果')
             output_images = gr.Gallery(label='Output', show_label=False).style(columns=3, rows=2, height=600,
-                                                                               object_fit="contain")
-            
+            object_fit="contain")
         with gr.Accordion(label="历史生成结果", open=False, visible=False):
             with gr.Row():
                 single_history = gr.Gallery(label='单张图片')
@@ -1621,3 +1628,4 @@ if __name__ == "__main__":
         demo.queue(status_update_rate=1).launch(server_name="0.0.0.0", share=True,server_port=6006)
     else:
         demo.queue(status_update_rate=1).launch(share=True,server_port=6006)
+
