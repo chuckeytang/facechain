@@ -103,7 +103,7 @@ The following installation methods are supported:
 # Note: Please use: ubuntu22.04-cuda11.8.0-py310-torch2.1.0-tf2.14.0-1.10.0
 
 # Step2: Entry the Notebook cell，clone FaceChain from github:
-!GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/modelscope/facechain.git --depth 1
+!GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/chuckeytang/facechain.git --depth 1
 
 # Step3: Change the working directory to facechain, and install the dependencies:
 import os
@@ -153,7 +153,7 @@ pip3 install edge-tts
 pip3 install modelscope==1.10.0
 
 # Step5 clone facechain from github
-GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/modelscope/facechain.git --depth 1
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/chuckeytang/facechain.git --depth 1
 cd facechain
 python3 app.py
 # Note: FaceChain currently assume single-GPU, if your environment has multiple GPU, please use the following instead:
@@ -172,7 +172,7 @@ Use the conda virtual environment, and refer to [Anaconda](https://docs.anaconda
 conda create -n facechain python=3.10    # Verified environments: 3.10 and 3.8 recommend 3.10
 conda activate facechain
 
-GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/modelscope/facechain.git --depth 1
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/chuckeytang/facechain.git --depth 1
 cd facechain
 
 pip3 install -r requirements.txt
