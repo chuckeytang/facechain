@@ -545,7 +545,8 @@ def main():
         ## Our data process fn
         data_process_fn(input_img_dir=args.output_dataset_name, use_data_process=True)
 
-    args.dataset_name = args.output_dataset_name + '_labeled'
+    # args.dataset_name = args.output_dataset_name + '_labeled'
+    args.dataset_name = args.output_dataset_name
 
     accelerator_project_config = ProjectConfiguration(
         total_limit=args.checkpoints_total_limit, project_dir=args.output_dir, logging_dir=logging_dir
@@ -787,6 +788,7 @@ def main():
     # In distributed training, the load_dataset function guarantees that only one local process can concurrently
     # download the dataset.
     dataset = load_dataset("imagefolder", data_dir=args.dataset_name)
+    logger.info(f"chuckeytang :{args.dataset_name}")
 
     # if args.dataset_name is not None:
     #     # Downloading and loading a dataset from the hub.

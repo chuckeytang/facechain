@@ -10,6 +10,9 @@ import cv2
 import gradio as gr
 import numpy as np
 import torch
+import threading
+import queue
+import time
 from glob import glob
 import platform
 from facechain.utils import snapshot_download, check_ffmpeg, set_spawn_method, project_dir, join_worker_data_dir
@@ -244,14 +247,15 @@ def launch_pipeline(uuid,
         else:
             uuid = 'qw'
 
-    # Check base model
-    if base_model_index == None:
-        raise gr.Error('请选择基模型(Please select the base model)!')
-    set_spawn_method()
-    # Check character LoRA
-    tmp_character_model = base_models[base_model_index]['model_id']
-    if tmp_character_model != 'AI-ModelScope/stable-diffusion-xl-base-1.0':
-        tmp_character_model = character_model
+    # # Check base model
+    # if base_model_index == None:
+    #     raise gr.Error('请选择基模型(Please select the base model)!')
+    # set_spawn_method()
+    # # Check character LoRA
+    # tmp_character_model = base_models[base_model_index]['model_id']
+    # if tmp_character_model != 'AI-ModelScope/stable-diffusion-xl-base-1.0':
+    #     tmp_character_model = character_model
+    tmp_character_model = 'AI-ModelScope/stable-diffusion-xl-base-1.0'
 
     folder_path = join_worker_data_dir(uuid, tmp_character_model)
     folder_list = []
@@ -265,17 +269,17 @@ def launch_pipeline(uuid,
                 if os.path.exists(file_lora_path) or os.path.exists(file_lora_path_swift):
                     folder_list.append(file)
     if len(folder_list) == 0:
-        raise gr.Error('没有人物LoRA，请先训练(There is no character LoRA, please train first)!')
+        raise gr.Error('没有人物LoRA，请先上传照片训练!')
 
     # Check output model
     if user_model == None:
-        raise gr.Error('请选择人物LoRA(Please select the character LoRA)！')
+        raise gr.Error('请选择人物LoRA！')
     # Check lora choice
     if lora_choice == None:
-        raise gr.Error('请选择LoRA模型(Please select the LoRA model)!')
+        raise gr.Error('请选择LoRA模型!')
     # Check style model
     if style_model == None and lora_choice == 'preset':
-        raise gr.Error('请选择风格模型(Please select the style model)!')
+        raise gr.Error('请选择风格模型!')
 
     base_model = base_models[base_model_index]['model_id']
     revision = base_models[base_model_index]['revision']
@@ -377,9 +381,9 @@ def launch_pipeline(uuid,
         image_path = os.path.join(save_dir, 'concat', str(num) + '.png')
         cv2.imwrite(image_path, result)
 
-        yield ["生成完毕(Generation done)!", outputs_RGB]
+        yield ["生成完毕!", outputs_RGB]
     else:
-        yield ["生成失败, 请重试(Generation failed, please retry)!", outputs_RGB]
+        yield ["生成失败, 请重试!", outputs_RGB]
 
 
 def launch_pipeline_inpaint(uuid,
@@ -393,13 +397,13 @@ def launch_pipeline_inpaint(uuid,
 
     if not uuid:
         if os.getenv("MODELSCOPE_ENVIRONMENT") == 'studio':
-            raise gr.Error("请登陆后使用! (Please login first)")
+            raise gr.Error("请登陆后使用!")
         else:
             uuid = 'qw'
 
     # Check base model
     if base_model_index == None:
-        raise gr.Error('请选择基模型(Please select the base model)！')
+        raise gr.Error('请选择基模型！')
 
     # Check character LoRA
     tmp_character_model = base_models[base_model_index]['model_id']
@@ -418,19 +422,19 @@ def launch_pipeline_inpaint(uuid,
                 if os.path.exists(file_lora_path) or os.path.exists(file_lora_path_swift):
                     folder_list.append(file)
     if len(folder_list) == 0:
-        raise gr.Error('没有人物LoRA，请先训练(There is no character LoRA, please train first)!')
+        raise gr.Error('没有人物LoRA，请先训练!')
 
     # Check character LoRA
     if num_faces == 1:
         if user_model_A == None:
-            raise gr.Error('请至少选择一个人物LoRA(Please select at least one character LoRA)！')
+            raise gr.Error('请至少选择一个人物LoRA！')
     else:
         if user_model_A == None and user_model_B == None:
-            raise gr.Error('请至少选择一个人物LoRA(Please select at least one character LoRA)！')
+            raise gr.Error('请至少选择一个人物LoRA！')
 
     if isinstance(template_image, str):
         if len(template_image) == 0:
-            raise gr.Error('请选择一张模板(Please select 1 template)')
+            raise gr.Error('请选择一张模板')
 
     base_model = base_models[base_model_index]['model_id']
     revision = base_models[base_model_index]['revision']
@@ -447,9 +451,9 @@ def launch_pipeline_inpaint(uuid,
     neg_prompt = 'nsfw, paintings, sketches, (worst quality:2), (low quality:2) ' \
                 'lowers, normal quality, ((monochrome)), ((grayscale)), logo, word, character'
 
-    if user_model_A == '不重绘该人物(Do not inpaint this character)':
+    if user_model_A == '不重绘该人物':
         user_model_A = None
-    if user_model_B == '不重绘该人物(Do not inpaint this character)':
+    if user_model_B == '不重绘该人物':
         user_model_B = None
            
     if user_model_A is not None:
@@ -491,7 +495,7 @@ def launch_pipeline_inpaint(uuid,
                 yield ["排队等待资源中，前方还有{}个生成任务, 预计需要等待{}分钟...".format(to_wait, to_wait * 2.5),
                        None]
             else:
-                yield ["生成中, 请耐心等待(Generating)...", None]
+                yield ["生成中, 请耐心等待...", None]
             time.sleep(1)
 
     outputs = future.result()
@@ -504,9 +508,9 @@ def launch_pipeline_inpaint(uuid,
         cv2.imwrite('{}_{}.png'.format(out_path, i), out_tmp)
 
     if len(outputs) > 0:   
-        yield ["生成完毕(Generation done)！", outputs_RGB]
+        yield ["生成完毕！", outputs_RGB]
     else:
-        yield ["生成失败，请重试(Generation failed, please retry)！", outputs_RGB]
+        yield ["生成失败，请重试！", outputs_RGB]
 
 
 def get_previous_image_result(uuid):
@@ -526,10 +530,10 @@ def get_previous_image_result(uuid):
     return image_results_old + image_results + image_results_new
 
 def toggle_audio(choice):
-    if choice == "麦克风(microphone)":
+    if choice == "麦克风":
         return gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), \
             gr.update(visible=False), gr.update(visible=True), gr.update(visible=False)
-    elif choice == "上传文件(upload)":
+    elif choice == "上传文件":
         return gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), \
             gr.update(visible=False), gr.update(visible=False), gr.update(visible=True)
     else:
@@ -540,25 +544,25 @@ def launch_pipeline_talkinghead(uuid, source_image, audio_source, audio_tts, aud
                                 preprocess='crop', still_mode=True,  use_enhancer=False, batch_size=1, size=256,
                                 pose_style = 0, exp_scale=1.0):
     if not check_ffmpeg():
-        raise gr.Error("请先安装ffmpeg，然后刷新网页（Please install ffmpeg, then restart the webpage）")
+        raise gr.Error("请先安装ffmpeg，然后刷新网页")
 
     before_queue_size = 0
     before_done_count = inference_done_count
 
     if not source_image:
-        raise gr.Error('请选择一张源图片(Please select 1 source image)')
-    if audio_source == "语音合成(TTS)":
+        raise gr.Error('请选择一张源图片')
+    if audio_source == "语音合成":
         driven_audio = audio_tts
-    elif audio_source == "麦克风(microphone)":
+    elif audio_source == "麦克风":
         driven_audio = audio_microphone
     else:
         driven_audio = audio_upload
     if not driven_audio:
-        raise gr.Error('请提供一段wav、mp3音频(Please provide 1 wav or mp3 audio)')
+        raise gr.Error('请提供一段wav、mp3音频')
 
     user_directory = os.path.expanduser("~")
     if not os.path.exists(os.path.join(user_directory, '.cache', 'modelscope', 'hub', 'wwd123', 'sadtalker')):
-        gr.Info("第一次初始化会比较耗时，请耐心等待(The first time initialization will take time, please wait)")
+        gr.Info("第一次初始化会比较耗时，请耐心等待")
 
     gen_video = SadTalker(uuid)
 
@@ -571,18 +575,18 @@ def launch_pipeline_talkinghead(uuid, source_image, audio_source, audio_tts, aud
             if not is_processing:
                 cur_done_count = inference_done_count
                 to_wait = before_queue_size - (cur_done_count - before_done_count)
-                yield ["排队等待资源中，前方还有{}个生成任务(Queueing, there are {} tasks ahead)".format(to_wait, to_wait),
+                yield ["排队等待资源中，前方还有{}个生成任务".format(to_wait),
                        None]
             else:
-                yield ["生成中, 请耐心等待(Generating, please wait)...", None]
+                yield ["生成中, 请耐心等待...", None]
             time.sleep(1)
 
     output = future.result()
 
     if output:   
-        yield ["生成完毕(Generation done)！", output]
+        yield ["生成完毕！", output]
     else:
-        yield ["生成失败，请重试(Generation failed, please retry)！", output]
+        yield ["生成失败，请重试！", output]
 
 
 def launch_pipeline_tryon(uuid,
@@ -595,7 +599,7 @@ def launch_pipeline_tryon(uuid,
 
     if not uuid:
         if os.getenv("MODELSCOPE_ENVIRONMENT") == 'studio':
-            raise gr.Error("请登陆后使用! (Please login first)")
+            raise gr.Error("请登陆后使用! ")
         else:
             uuid = 'qw'
 
@@ -614,16 +618,16 @@ def launch_pipeline_tryon(uuid,
                 if os.path.exists(file_lora_path):
                     folder_list.append(file)
     if len(folder_list) == 0:
-        raise gr.Error('没有人物LoRA，请先训练(There is no character LoRA, please train first)!')
+        raise gr.Error('没有人物LoRA，请先训练!')
 
     # Check character LoRA
     if 1:
         if user_model == None:
-            raise gr.Error('请选择人物LoRA(Please select character LoRA)！')
+            raise gr.Error('请选择人物LoRA！')
 
     if isinstance(template_image, str):
         if len(template_image) == 0:
-            raise gr.Error('请选择一张模板(Please select 1 template)')
+            raise gr.Error('请选择一张模板')
 
     base_model = base_models[base_model_index]['model_id']
     revision = base_models[base_model_index]['revision']
@@ -678,7 +682,7 @@ def launch_pipeline_tryon(uuid,
                 yield ["排队等待资源中，前方还有{}个生成任务, 预计需要等待{}分钟...".format(to_wait, to_wait * 2.5),
                        None]
             else:
-                yield ["生成中, 请耐心等待(Generating)...", None]
+                yield ["生成中, 请耐心等待...", None]
             time.sleep(1)
 
     outputs = future.result()
@@ -704,7 +708,7 @@ def launch_pipeline_tryon(uuid,
                     yield ["排队等待资源中，前方还有{}个生成任务, 预计需要等待{}分钟...".format(to_wait, to_wait * 2.5),
                            None]
                 else:
-                    yield ["生成中, 请耐心等待(Generating)...", None]
+                    yield ["生成中, 请耐心等待...", None]
                 time.sleep(1)
 
     outputs = future.result()
@@ -716,26 +720,54 @@ def launch_pipeline_tryon(uuid,
         cv2.imwrite('{}_{}.png'.format(out_path, i), out_tmp)
 
     if len(outputs) > 0:
-        yield ["生成完毕(Generation done)！", outputs_RGB]
+        yield ["生成完毕！", outputs_RGB]
     else:
-        yield ["生成失败，请重试(Generation failed, please retry)！", outputs_RGB]
+        yield ["生成失败，请重试！", outputs_RGB]
+
 
 
 class Trainer:
     def __init__(self):
+        # threading.Thread(target=self.process_queue, daemon=True).start()
         pass
 
-    def run(
-            self,
-            uuid: str,
-            base_model_name: str,
-            instance_images: list,
-            output_model_name: str,
-    ) -> str:
+    # 创建全局任务队列
+    task_queue = queue.Queue()
+
+    def run(self, uuid: str, base_model_name: str, instance_images: list, output_model_name: str) -> str:
+    #     # 将任务添加到队列中
+    #     task = (uuid, base_model_name, instance_images, output_model_name)
+    #     self.task_queue.put(task)
+    #     return f"您的任务已经加入队列，当前队列长度：{self.task_queue.qsize()}。请等待处理..."
+
+    # def process_queue(self):
+    #     while True:
+    #         if not self.task_queue.empty():
+    #             # 从队列中获取任务
+    #             task = self.task_queue.get()
+    #             try:
+    #                 # 执行原有的任务逻辑
+    #                 self.actual_run(*task)
+    #             except Exception as e:
+    #                 print(f"处理任务时发生错误：{e}")
+    #             finally:
+    #                 # 确保任务总是被标记为完成
+    #                 self.task_queue.task_done()
+    #         else:
+    #             # 如果队列为空，则等待一段时间
+    #             time.sleep(1)
+                
+    # def actual_run(
+    #         self,
+    #         uuid: str,
+    #         base_model_name: str,
+    #         instance_images: list,
+    #         output_model_name: str,
+    # ) -> str:
         set_spawn_method()
         # Check Cuda
         if not torch.cuda.is_available():
-            raise gr.Error('CUDA不可用(CUDA not available)')
+            raise gr.Error('CUDA不可用')
 
         # Check Cuda Memory
         if torch.cuda.is_available():
@@ -751,20 +783,20 @@ class Trainer:
 
         # Check Instance Valid
         if instance_images is None:
-            raise gr.Error('您需要上传训练图片(Please upload photos)!')
+            raise gr.Error('您需要上传训练图片!')
         
         # Check output model name
         if not output_model_name:
-            raise gr.Error('请指定人物lora的名称(Please specify the character LoRA name)！')
+            raise gr.Error('请指定人物lora的名称！')
         
         # Limit input Image
         if len(instance_images) > 20:
-            raise gr.Error('请最多上传20张训练图片(20 images at most!)')
+            raise gr.Error('请最多上传20张训练图片')
 
         # Check UUID & Studio
         if not uuid:
             if os.getenv("MODELSCOPE_ENVIRONMENT") == 'studio':
-                return "请登陆后使用(Please login first)! "
+                return "请登陆后使用! "
             else:
                 uuid = 'qw'
         if base_model_name == SDXL_BASE_MODEL_ID:
@@ -790,7 +822,7 @@ class Trainer:
         work_dir = join_worker_data_dir(uuid, base_model_path, output_model_name)
 
         if os.path.exists(work_dir):
-            raise gr.Error("人物lora名称已存在。(This character lora name already exists.)")
+            raise gr.Error("人物lora名称已存在。")
 
         print("----------work_dir: ", work_dir)
         shutil.rmtree(work_dir, ignore_errors=True)
@@ -808,9 +840,7 @@ class Trainer:
                       work_dir=work_dir,
                       photo_num=len(instance_images))
 
-        message = '''<center><font size=4>训练已经完成！请切换至 [无限风格形象写真] 标签体验模型效果。</center>
-        
-        <center><font size=4>(Training done, please switch to the Infinite Style Portrait tab to generate photos.)</center>'''
+        message = '''<center><font size=4>训练已经完成！请切换至 [风格形象写真] 标签体验模型效果。</center>'''
         print(message)
         return message
 
@@ -827,7 +857,7 @@ def flash_model_list(uuid, base_model_index, lora_choice:gr.Dropdown):
 
     if not uuid:
         if os.getenv("MODELSCOPE_ENVIRONMENT") == 'studio':
-            raise gr.Error("请登陆后使用! (Please login first)")
+            raise gr.Error("请登陆后使用!")
         else:
             uuid = 'qw'
 
@@ -1058,13 +1088,13 @@ def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None
             return gr.Gallery.update(value=[], visible=True), gr.Gallery.update(value=[], visible=True) # error triggered by option change, won't pop up warning
         
     if base_model_index is None:
-        raise gr.Error('请选择基模型(Please select the base model)!')
+        raise gr.Error('请选择基模型!')
     if user_model is None:
-        raise gr.Error('请选择人物lora(Please select the character lora)!')    
+        raise gr.Error('请选择人物lora!')    
     if lora_choice is None:
-        raise gr.Error('请选择LoRa文件(Please select the LoRa file)!')
+        raise gr.Error('请选择LoRa文件!')
     if style_model is None and lora_choice == 'preset':
-        raise gr.Error('请选择风格(Please select the style)!')
+        raise gr.Error('请选择风格!')
     
     base_model = base_models[base_model_index]['model_id']
     matched = list(filter(lambda item: style_model == item['name'], styles))
@@ -1105,19 +1135,19 @@ def train_input():
         with gr.Row():
             with gr.Column():
                 with gr.Box():
-                    output_model_name = gr.Textbox(label="人物lora名称(Character lora name)", value='person1', lines=1)
+                    output_model_name = gr.Textbox(label="人物lora名称", value='person1', lines=1)
                     base_model_name = gr.Dropdown(choices=['AI-ModelScope/stable-diffusion-v1-5',
                                                            SDXL_BASE_MODEL_ID],
                                                   value='AI-ModelScope/stable-diffusion-v1-5',
-                                                  label='基模型')
-                    gr.Markdown('训练图片(Training photos)')
+                                                  label='基模型', visible=False)
+                    gr.Markdown('训练图片')
                     instance_images = gr.Gallery()
                     with gr.Row():
-                        upload_button = gr.UploadButton("选择图片上传(Upload photos)", file_types=["image"],
+                        upload_button = gr.UploadButton("选择图片上传", file_types=["image"],
                                                         file_count="multiple")
                         #webcam = gr.Button("拍照上传")
 
-                        clear_button = gr.Button("清空图片(Clear photos)")
+                        clear_button = gr.Button("清空图片")
                     #with gr.Row():
                     #    image = gr.Image(source='webcam',type="filepath",visible=False).style(height=500,width=500)
                     clear_button.click(fn=lambda: [], inputs=None, outputs=instance_images)
@@ -1128,39 +1158,32 @@ def train_input():
                     #image.change(add_file_webcam,inputs=[instance_images, image],outputs=instance_images, show_progress=True).then(webcam_image_close,inputs=image,outputs=image)
                     
                     gr.Markdown('''
-                        使用说明（Instructions）：
+                        使用说明：
                         ''')
                     gr.Markdown('''
-                        - Step 1. 上传计划训练的图片, 1~10张头肩照(注意: 请避免图片中出现多人脸、脸部遮挡等情况, 否则可能导致效果异常)
-                        - Step 2. 点击 [开始训练] , 启动形象定制化训练, 每张图片约需1.5分钟, 请耐心等待～
-                        - Step 3. 切换至 [形象写真] , 生成你的风格照片<br/><br/>
-                        ''')
-                    gr.Markdown('''
-                        - Step 1. Upload 1-10 headshot photos of yours (Note: avoid photos with multiple faces or face obstruction, which may lead to non-ideal result).
-                        - Step 2. Click [Train] to start training for customizing your Digital-Twin, this may take up-to 1.5 mins per image.
-                        - Step 3. Switch to [Portrait] Tab to generate stylized photos.
+                        - 步骤1. 上传计划训练的图片, 1~10张头肩照(注意: 请避免图片中出现多人脸、脸部遮挡等情况, 否则可能导致效果异常)
+                        - 步骤2. 点击 [开始训练] , 启动形象定制化训练, 每张图片约需1.5分钟, 请耐心等待～
+                        - 步骤3. 切换至 [形象写真] , 生成你的风格照片<br/><br/>
                         ''')
 
-        run_button = gr.Button('开始训练(等待上传图片加载显示出来再点, 否则会报错)... '
-                               'Start training (please wait until photo(s) fully uploaded, otherwise it may result in training failure)')
+        run_button = gr.Button('''开始训练
+        (等待上传图片加载显示出来再点, 否则会报错)... ''')
 
         with gr.Box():
             gr.Markdown('''
             <center>请等待训练完成，请勿刷新或关闭页面。</center>
-
-            <center>(Please wait for the training to complete, do not refresh or close the page.)</center>
             ''')
             output_message = gr.Markdown()
-        with gr.Box():
-            gr.Markdown('''
-            碰到抓狂的错误或者计算资源紧张的情况下，推荐直接在[NoteBook](https://modelscope.cn/my/mynotebook/preset)上进行体验。
+        # with gr.Box():
+        #     gr.Markdown('''
+        #     碰到抓狂的错误或者计算资源紧张的情况下，推荐直接在[NoteBook](https://modelscope.cn/my/mynotebook/preset)上进行体验。
 
-            (If you are experiencing prolonged waiting time, you may try on [ModelScope NoteBook](https://modelscope.cn/my/mynotebook/preset) to prepare your dedicated environment.)
+        #     (If you are experiencing prolonged waiting time, you may try on [ModelScope NoteBook](https://modelscope.cn/my/mynotebook/preset) to prepare your dedicated environment.)
 
-            安装方法请参考：https://github.com/modelscope/facechain .
+        #     安装方法请参考：https://github.com/modelscope/facechain .
 
-            (You may refer to: https://github.com/modelscope/facechain for installation instruction.)
-            ''')
+        #     (You may refer to: https://github.com/modelscope/facechain for installation instruction.)
+        #     ''')
 
         run_button.click(fn=trainer.run,
                          inputs=[
@@ -1184,18 +1207,18 @@ def inference_input():
                 for base_model in base_models:
                     base_model_list.append(BASE_MODEL_MAP[base_model['name']])
 
-                base_model_index = gr.Radio(label="基模型选择(Base model list)", choices=base_model_list, type="index", value=None)
+                base_model_index = gr.Radio(label="基模型选择(Base model list)", choices=base_model_list, type="index", value=None, visible=False)
                 
                 with gr.Row():
                     with gr.Column(scale=2):
-                        user_model = gr.Radio(label="人物LoRA列表(Character LoRAs)", choices=[], type="value")
+                        user_model = gr.Radio(label="人物LoRA列表", choices=[], type="value")
                     with gr.Column(scale=1):
-                        update_button = gr.Button('刷新人物LoRA列表(Refresh character LoRAs)')
+                        update_button = gr.Button('刷新人物LoRA列表')
 
                 with gr.Box():
-                    style_model = gr.Text(label='请选择一种风格(Select a style from the pics below):', interactive=False)
+                    style_model = gr.Text(label='请选择一种风格:', interactive=False)
                     gallery = gr.Gallery(value=[(item["img"], item["name"]) for item in styles],
-                                        label="风格(Style)",
+                                        label="风格",
                                         allow_preview=False,
                                         columns=5,
                                         elem_id="gallery",
@@ -1208,7 +1231,7 @@ def inference_input():
 
                 with gr.Accordion("高级选项(Advanced Options)", open=False):
                     # upload one lora file and show the name or path of the file
-                    with gr.Accordion("上传LoRA文件(Upload LoRA file)", open=False):
+                    with gr.Accordion("上传LoRA文件(Upload LoRA file)", open=False, visible=False):
                         lora_choice = gr.Dropdown(choices=["preset"], type="value", value="preset", label="LoRA文件(LoRA file)", visible=False)
                         lora_file = gr.File(
                             value=None,
@@ -1219,10 +1242,10 @@ def inference_input():
                             visible=False,
                         )
 
-                    out_img_size_list = ["512x512", "768x768", "1024x1024", "2048x2048"]
-                    sr_img_size =  gr.Radio(label="输出分辨率选择(Output Image Size)", choices=out_img_size_list, type="index", value="512x512")
+                    out_img_size_list = ["512x512", "768x768", "1024x1024"]
+                    sr_img_size =  gr.Radio(label="输出分辨率选择", choices=out_img_size_list, type="index", value="768x768")
                     cartoon_style_idx =  gr.Radio(label="动漫风格选择", choices=['2D人像卡通', '3D人像卡通化'], type="index")
-                    with gr.Accordion("采样器选项(Sampler Options)", open=False):
+                    with gr.Accordion("采样器选项", open=False, visible=False):
                         use_lcm_idx =  gr.Radio(label="是否使用LCM采样器", choices=['使用默认采样器', '使用LCM采样器'], type="index", value="使用默认采样器")
                         gr.Markdown('''
                         注意: 
@@ -1235,15 +1258,15 @@ def inference_input():
                                             interactive=True)
                     neg_prompt = gr.Textbox(label="负向提示语(Negative Prompt)", lines=3,
                                             value="",
-                                            interactive=True)
+                                            interactive=True, visible=False)
                     if neg_prompt.value == '' :
                         neg_prompt.value = neg
                     multiplier_style = gr.Slider(minimum=0, maximum=1, value=0.25,
-                                                 step=0.05, label='风格权重(Multiplier style)')
+                                                 step=0.05, label='风格权重')
                     multiplier_human = gr.Slider(minimum=0, maximum=1.2, value=0.95,
-                                                 step=0.05, label='形象权重(Multiplier human)')
+                                                 step=0.05, label='形象权重')
                     
-                    with gr.Accordion("姿态控制(Pose control)", open=False):
+                    with gr.Accordion("姿态控制(Pose control)", open=False, visible=False):
                         with gr.Row():
                             pose_image = gr.Image(source='upload', type='filepath', label='姿态图片(Pose image)', height=250)
                             pose_res_image = gr.Image(source='upload', interactive=False, label='姿态结果(Pose result)', visible=False, height=250)
@@ -1253,33 +1276,31 @@ def inference_input():
                                             type="index", label="姿态控制模型(Pose control model)")
                 with gr.Box():
                     num_images = gr.Number(
-                        label='生成图片数量(Number of photos)', value=6, precision=1, minimum=1, maximum=6)
+                        label='生成图片数量', value=3, precision=1, minimum=1, maximum=6)
                     gr.Markdown('''
                     注意: 
-                    - 最多支持生成6张图片!(You may generate a maximum of 6 photos at one time!)
-                    - 可上传在定义LoRA文件使用, 否则默认使用风格模型的LoRA。(You may upload custome LoRA file, otherwise the LoRA file of the style model will be used by deault.)
-                    - 使用自定义LoRA文件需手动输入prompt, 否则可能无法正常触发LoRA文件风格。(You shall provide prompt when using custom LoRA, otherwise desired LoRA style may not be triggered.)
+                    - 最多支持生成6张图片!
                         ''')
 
         with gr.Row():
-            display_button = gr.Button('开始生成(Start!)')   
+            display_button = gr.Button('开始生成')   
             with gr.Column():
-                history_button = gr.Button('查看历史(Show history)')
+                history_button = gr.Button('查看历史', visible=False)
                 load_history_text = gr.Text("load", visible=False)
-                delete_history_button = gr.Button('删除历史(Delete history)')
+                delete_history_button = gr.Button('删除历史(Delete history)', visible=False)
                 delete_history_text = gr.Text("delete", visible=False)
 
         with gr.Box():
-            infer_progress = gr.Textbox(label="生成进度(Progress)", value="当前无生成任务(No task)", interactive=False)
+            infer_progress = gr.Textbox(label="生成进度", value="当前无生成任务", interactive=False)
         with gr.Box():
-            gr.Markdown('生成结果(Result)')
+            gr.Markdown('生成结果')
             output_images = gr.Gallery(label='Output', show_label=False).style(columns=3, rows=2, height=600,
                                                                                object_fit="contain")
             
-        with gr.Accordion(label="历史生成结果(History)", open=False):
+        with gr.Accordion(label="历史生成结果", open=False, visible=False):
             with gr.Row():
-                single_history = gr.Gallery(label='单张图片(Single image history)')
-                batch_history = gr.Gallery(label='图片组(Batch image history)')
+                single_history = gr.Gallery(label='单张图片')
+                batch_history = gr.Gallery(label='图片组')
                 
         update_history_text = gr.Text("update", visible=False)
         
@@ -1578,25 +1599,25 @@ with gr.Blocks(css='style.css') as demo:
     from importlib.util import find_spec
     if find_spec('webui'):
         # if running as a webui extension, don't display banner self-advertisement
-        gr.Markdown("# <center> \N{fire} FaceChain Potrait Generation (\N{whale} [Paper cite it here](https://arxiv.org/abs/2308.14256) \N{whale})</center>")
+        gr.Markdown("# <center>FaceChain人像生成</center>")
     else:
-        gr.Markdown("# <center> \N{fire} FaceChain Potrait Generation ([Github star it here](https://github.com/modelscope/facechain/tree/main) \N{whale},   [Paper](https://arxiv.org/abs/2308.14256) \N{whale},   [API](https://help.aliyun.com/zh/dashscope/developer-reference/facechain-quick-start) \N{whale},   [API's Example App](https://tongyi.aliyun.com/wanxiang/app/portrait-gallery) \N{whale})</center>")
-    gr.Markdown("##### <center> 本项目仅供学习交流，请勿将模型及其制作内容用于非法活动或违反他人隐私的场景。(This project is intended solely for the purpose of technological discussion, and should not be used for illegal activities and violating privacy of individuals.)</center>")
+        gr.Markdown("# <center>FaceChain人像生成</center>")
+    gr.Markdown("##### <center> 本项目仅供学习交流，请勿将模型及其制作内容用于非法活动或违反他人隐私的场景。</center>")
     with gr.Tabs():
-        with gr.TabItem('\N{rocket}人物形象训练(Train Digital Twin)'):
+        with gr.TabItem('人物形象训练'):
             train_input()
-        with gr.TabItem('\N{party popper}无限风格形象写真(Infinite Style Portrait)'):
+        with gr.TabItem('风格形象写真'):
             inference_input()
-        with gr.TabItem('\N{party popper}固定模板形象写真(Fixed Templates Portrait)'):
-            inference_inpaint()
-        with gr.TabItem('\N{party popper}虚拟试衣(Virtual Try-on)'):
-            inference_tryon()
-        with gr.TabItem('\N{clapper board}人物说话视频生成(Audio Driven Talking Head)'):
-            inference_talkinghead()
+        # with gr.TabItem('\N{party popper}固定模板形象写真(Fixed Templates Portrait)'):
+        #     inference_inpaint()
+        # with gr.TabItem('\N{party popper}虚拟试衣(Virtual Try-on)'):
+        #     inference_tryon()
+        # with gr.TabItem('\N{clapper board}人物说话视频生成(Audio Driven Talking Head)'):
+        #     inference_talkinghead()
 
 if __name__ == "__main__":
     set_spawn_method()
     if os.path.exists("/.dockerenv"):
-        demo.queue(status_update_rate=1).launch(server_name="0.0.0.0", share=True)
+        demo.queue(status_update_rate=1).launch(server_name="0.0.0.0", share=True,server_port=6006)
     else:
-        demo.queue(status_update_rate=1).launch(share=True)
+        demo.queue(status_update_rate=1).launch(share=True,server_port=6006)
