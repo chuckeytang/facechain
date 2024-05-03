@@ -573,11 +573,11 @@ class GenPortrait:
         # stylization
         final_gen_results = stylization_fn(self.use_stylization, rank_results)
         sr_pipe = pipeline(Tasks.image_super_resolution, model='damo/cv_rrdb_image-super-resolution')
-        if portrait_stylization_idx is not None and int(portrait_stylization_idx) in [0, 1]:
+        if portrait_stylization_idx is not None and int(portrait_stylization_idx) in [1, 2]:
             out_results = []
-            if int(portrait_stylization_idx) == 0:
-                img_cartoon = pipeline(Tasks.image_portrait_stylization, model='damo/cv_unet_person-image-cartoon_compound-models')
             if int(portrait_stylization_idx) == 1:
+                img_cartoon = pipeline(Tasks.image_portrait_stylization, model='damo/cv_unet_person-image-cartoon_compound-models')
+            if int(portrait_stylization_idx) == 2:
                 img_cartoon = pipeline(Tasks.image_portrait_stylization, model='damo/cv_unet_person-image-cartoon-3d_compound-models')
 
             for i in range(len(final_gen_results)):

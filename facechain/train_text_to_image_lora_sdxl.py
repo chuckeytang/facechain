@@ -546,8 +546,7 @@ def main():
         ## Our data process fn
         data_process_fn(input_img_dir=args.output_dataset_name, use_data_process=True)
 
-    # args.dataset_name = args.output_dataset_name + '_labeled'
-    args.dataset_name = args.output_dataset_name
+    args.dataset_name = args.output_dataset_name + '_labeled'
 
     accelerator_project_config = ProjectConfiguration(
         total_limit=args.checkpoints_total_limit, project_dir=args.output_dir, logging_dir=logging_dir

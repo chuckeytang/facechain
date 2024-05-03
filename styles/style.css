@@ -1,0 +1,25 @@
+body, html {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: url('background.jpg') no-repeat center center fixed; 
+    background-size: cover;
+}
+
+.container {
+    padding: 0 5%; /* 添加5%的左右padding */
+    width: 90%; /* 总宽度调整为90%，余下10%为padding分配 */
+    margin: auto; /* 居中显示 */
+}
+
+
+h1 {
+    color: white;
+    margin-bottom: 40px;
+}
+
+.button {
+    width: 100%; /* 按钮宽度为100% */
+    padding: 15px; /* 按钮内部的填充 */
+    margin: 10px 0; /* 上下边距，左右无边距 */
+}

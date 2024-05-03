@@ -30,11 +30,9 @@ SDXL_BASE_MODEL_ID = 'AI-ModelScope/stable-diffusion-xl-base-1.0'
 #character_model = 'AI-ModelScope/stable-diffusion-xl-base-1.0'
 character_model = 'ly261666/cv_portrait_model'
 BASE_MODEL_MAP = {
-    "leosamsMoonfilm_filmGrain20": "写实模型(Realistic sd_1.5 model)",
-    "MajicmixRealistic_v6": "\N{fire}写真模型(Photorealistic sd_1.5 model)",
-    "sdxl_1.0": "sdxl_1.0",
+    "leosamsMoonfilm_filmGrain20": "写实模型",
+    "MajicmixRealistic_v6": "写真模型"
 }
-
 
 class UploadTarget(enum.Enum):
     PERSONAL_PROFILE = 'Personal Profile'
@@ -248,17 +246,18 @@ def launch_pipeline(uuid,
             uuid = 'qw'
 
     # # Check base model
-    # if base_model_index == None:
-    #     raise gr.Error('请选择基模型(Please select the base model)!')
-    # set_spawn_method()
-    # # Check character LoRA
-    # tmp_character_model = base_models[base_model_index]['model_id']
-    # if tmp_character_model != 'AI-ModelScope/stable-diffusion-xl-base-1.0':
-    #     tmp_character_model = character_model
-    tmp_character_model = 'AI-ModelScope/stable-diffusion-xl-base-1.0'
+    if base_model_index == None:
+        raise gr.Error('请选择基模型!')
+    set_spawn_method()
+    # Check character LoRA
+    tmp_character_model = base_models[base_model_index]['model_id']
+    if tmp_character_model != 'AI-ModelScope/stable-diffusion-xl-base-1.0':
+        tmp_character_model = character_model
+    # tmp_character_model = 'AI-ModelScope/stable-diffusion-xl-base-1.0'
 
     folder_path = join_worker_data_dir(uuid, tmp_character_model)
     folder_list = []
+    print(f"chuckeytang : {folder_path}")
     if os.path.exists(folder_path):
         files = os.listdir(folder_path)
         for file in files:
@@ -1139,7 +1138,7 @@ def train_input():
                     base_model_name = gr.Dropdown(choices=['AI-ModelScope/stable-diffusion-v1-5',
                                                            SDXL_BASE_MODEL_ID],
                                                   value='AI-ModelScope/stable-diffusion-v1-5',
-                                                  label='基模型')
+                                                  label='基模型', visible=False)
                     gr.Markdown('训练图片')
                     instance_images = gr.Gallery()
                     with gr.Row():
@@ -1162,9 +1161,9 @@ def train_input():
                         ''')
                     gr.Markdown('''
 
-                        - Step 1. 上传计划训练的图片, 1~10张头肩照(注意: 请避免图片中出现多人脸、脸部遮挡等情况, 否则可能导致效果异常)
-                        - Step 2. 点击 [开始训练] , 启动形象定制化训练, 每张图片约需1.5分钟, 请耐心等待～
-                        - Step 3. 切换至 [形象写真] , 生成你的风格照片<br/><br/>
+                        - 步骤 1. 上传计划训练的图片, 1~10张头肩照(注意: 请避免图片中出现多人脸、脸部遮挡等情况, 否则可能导致效果异常)
+                        - 步骤 2. 点击 [开始训练] , 启动形象定制化训练, 每张图片约需1.5分钟, 请耐心等待～
+                        - 步骤 3. 切换至 [风格形象写真] , 生成你的风格照片<br/><br/>
                         ''')
 
         run_button = gr.Button('开始训练(等待上传图片加载显示出来再点, 否则会报错)... ')
@@ -1248,7 +1247,7 @@ def inference_input():
 
                     out_img_size_list = ["512x512", "768x768", "1024x1024", "2048x2048"]
                     sr_img_size =  gr.Radio(label="输出分辨率选择(Output Image Size)", choices=out_img_size_list, type="index", value="512x512")
-                    cartoon_style_idx =  gr.Radio(label="动漫风格选择", choices=['2D人像卡通', '3D人像卡通化','无'], type="index")
+                    cartoon_style_idx =  gr.Radio(label="动漫风格选择", choices=['无', '2D人像卡通', '3D人像卡通化'], type="index")
                     with gr.Accordion("采样器选项", open=False, visible=False):
 
                         use_lcm_idx =  gr.Radio(label="是否使用LCM采样器", choices=['使用默认采样器', '使用LCM采样器'], type="index", value="使用默认采样器")
@@ -1288,13 +1287,40 @@ def inference_input():
                     - 最多支持生成6张图片!
                         ''')
 
+                # 初始更新控件
+                outputs = flash_model_list(uuid.value, 1, 'preset')
+                
+                def clean_update_data(data, supported_keys):
+                    """ 清洗更新数据，只保留支持的键 """
+                    return {key: data[key] for key in supported_keys if key in data}
+
+                # 定义 File 控件支持的键
+                user_model_keys = ['choices', 'value']
+                gallery_keys = ['value', 'visible']
+                style_model_keys = ['value', 'visible']
+                lora_choice_keys = ['choices', 'value']
+                file_supported_keys = ['file', 'filename', 'visible']
+
+                # 清洗 outputs[4] 的数据
+                cleaned_data = clean_update_data(outputs[0], user_model_keys)
+                user_model.update(**cleaned_data)
+                cleaned_data = clean_update_data(outputs[1], gallery_keys)
+                gallery.update(**cleaned_data)
+                cleaned_data = clean_update_data(outputs[2], style_model_keys)
+                style_model.update(**cleaned_data)
+                cleaned_data = clean_update_data(outputs[3], lora_choice_keys)
+                lora_choice.update(**cleaned_data)
+                cleaned_data = clean_update_data(outputs[4], file_supported_keys)
+                lora_file.update(**cleaned_data)
+
+
         with gr.Row():
             display_button = gr.Button('开始生成')   
             with gr.Column():
 
-                history_button = gr.Button('查看历史')
+                history_button = gr.Button('查看历史', visible=False)
                 load_history_text = gr.Text("load", visible=False)
-                delete_history_button = gr.Button('删除历史')
+                delete_history_button = gr.Button('删除历史', visible=False)
 
                 delete_history_text = gr.Text("delete", visible=False)
 
