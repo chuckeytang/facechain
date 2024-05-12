@@ -358,56 +358,41 @@ def select_function(evt: gr.SelectData):
     return gr.Text(value=style['name'], visible=True)
     
 
-# 记录上一次点击的时间和索引
-last_click = {'time': 0, 'index': None}
+def dblclick_pic_function(run_button, upload_button, double_click_index, current_images, hint):
+    print("double_click_index:", double_click_index)
+    if double_click_index is not None and double_click_index.isdigit():
+        double_click_index = int(double_click_index)
+        if double_click_index < len(current_images):
+            current_images.pop(double_click_index)  # 删除双击的图片
 
-def select_upload_pic_function(evt: gr.SelectData, run_button, upload_button, current_images, hint):
-    global last_click
-    current_time = time.time()
-    print("Selected image data:", evt.index)
-    
-    # 提取文件路径
-    current_file_paths = [img['name'] for img in current_images]
-
-    if evt is None or evt.index is None:
-        print("No image selected.")
-        return run_button, upload_button, current_file_paths, hint
-
-    # 检查是否为双击（例如，两次点击间隔小于0.5秒）
-    if last_click['index'] == evt.index and (current_time - last_click['time']) < 0.5:
-        # 双击发生，移除图片
-        print("双击:")
-        new_images = [path for i, path in enumerate(current_file_paths) if i != evt.index]
-        last_click = {'time': 0, 'index': None}  # 重置点击记录
-    else:
-        # 不是双击，更新上次点击记录
-        new_images = current_file_paths
-        last_click = {'time': current_time, 'index': evt.index}
-
-    print("new_images:", new_images)
+    print("new_images:", current_images)
     # 更新界面状态
-    if len(new_images) >= 3:
-        return gr.Button(visible=True), gr.UploadButton(visible=False), new_images, gr.Markdown(value=hint)
+    if len(current_images) >= 3:
+        return gr.Button(visible=True), gr.UploadButton(visible=False), current_images, gr.Markdown(value=hint)
     else:
         new_hint = """
         1. 请上传3~10张头肩照，照片越多效果越好哦
         2. 避免图片中出现多人脸、脸部遮挡等情况，否则可能导致效果异常
         3. 请等待上传图片加载显示出来再点，否则会报错
         4. 双击图片可移除
-        5. 训练大约需要5-20分钟，无须等待，可于一段时间后重新打开应用查看训练结果
         """
-        return run_button, upload_button, current_file_paths, hint
+        return gr.Button(visible=False), gr.UploadButton(visible=True), current_images, gr.Markdown(value=new_hint)
 
 
-def upload_file(files, current_files):
-    file_paths = [file_d['name'] for file_d in current_files] + [file.name for file in files]
-    hint = """
-        1. 请等待上传图片全部加载显示后，再点击“训练模型分身”按钮
-        2. 模型训练中，形象定制模型训练中每张图片需约1.5分钟，请耐心等待
-        3. 模型训练过程请勿刷新或关闭页面
-        """
-    print(f"file path: {file_paths}")
-    return gr.Button(visible=True), gr.Button(visible=False), file_paths, gr.Markdown(value=hint)
+def upload_file(files, current_images, hint):
+    print(f"files: {files}")
+    current_images = current_images or []
+    if len(current_images) + len(files) >= 3:
+        new_hint = """
+            1. 请等待上传图片全部加载显示后，再点击“训练模型分身”按钮
+            2. 模型训练中，形象定制模型训练中每张图片需约1.5分钟，请耐心等待
+            3. 模型训练过程请勿刷新或关闭页面
+            4. 双击图片可移除
+            5. 训练大约需要5-20分钟，无须等待，可于一段时间后重新打开应用查看训练结果
+            """
+        return gr.Button(visible=True), gr.Button(visible=False), current_images+files, gr.Markdown(value=new_hint)
+    else:
+        return gr.Button(visible=False), gr.Button(visible=True), current_images+files, gr.Markdown(value=hint)
 
 def show_train_interface(state):
     """显示训练模型的界面并隐藏主界面。"""
@@ -469,8 +454,45 @@ for base_model in base_models:
             styles.append(data)
     base_model['style_list'] = style_in_base
 
+
+gallery_double_click_js = """
+<script>
+    // 使用 document.body 来确保事件监听始终有效
+    console.log("打印测试");
+    document.body.addEventListener('dblclick', function(event) {
+        console.log("检测到双击");
+        const clickedElement = event.target;
+        // 检查双击的是否是图片，并且这个图片是否位于 .thumbnail-item 类的元素内
+        if (clickedElement.tagName === 'IMG' && clickedElement.closest('.thumbnail-item') && clickedElement.closest('.grid-container')) {
+            console.log("检测到图片");
+            // 选取所有包含图片的按钮元素
+            const images = Array.from(document.querySelectorAll('.thumbnail-item img'));
+            console.log("images:", images);
+            // 获取双击的图片索引
+            const index = images.indexOf(clickedElement);
+            console.log("双击图片的索引:", index);
+
+            // 获取textarea元素
+            const textarea = document.querySelector('#double_click_index textarea');
+            // 更新值
+            textarea.value = index.toString();
+            // 创建并触发input事件，以便Gradio后端能捕捉到这个变化
+            const event = new Event('input', { bubbles: true });
+            textarea.dispatchEvent(event);
+
+            // 打印赋值后的结果，以确认赋值成功
+            console.log("double_click_index: ", textarea.value);
+
+            // 触发后端处理的按钮点击事件
+            document.getElementById('instance_images_click_button').click();
+            }
+        }
+    );
+</script>
+"""
+
 cus_theme = gr.Theme.load("themes/miku/themes/theme_schema@1.2.2.json")
-with gr.Blocks(theme=cus_theme) as demo:
+with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
     state = gr.State({"page": "main"})  # 初始状态设置为主界面
 
     main_content = gr.Column()
@@ -502,12 +524,14 @@ with gr.Blocks(theme=cus_theme) as demo:
                                 value='AI-ModelScope/stable-diffusion-v1-5',
                                 label='基模型', visible=False)
         instance_images = gr.Gallery(
-                                    allow_preview=False)
-        upload_button = gr.UploadButton("选择照片上传", file_types=["image"],
-                                        file_count="multiple")
+                                    allow_preview=False, interactive=False)
+        upload_button = gr.UploadButton("选择照片上传", file_types=["image"], file_count="multiple")
         run_button = gr.Button('开始训练模型分身', visible=False)
         clear_button = gr.Button("清空图片")
         button_home1 = gr.Button("回到首页")
+
+        double_click_index = gr.Textbox(visible=False, elem_id="double_click_index")  # 用于接收双击的图片索引
+        instance_images_click_button = gr.Button("处理图片", elem_id="instance_images_click_button", visible=False)  # 模拟gallery中图片处理按钮
 
         hint = gr.Markdown("""
         1. 请上传3~10张头肩照，照片越多效果越好哦
@@ -518,8 +542,9 @@ with gr.Blocks(theme=cus_theme) as demo:
         """)
 
         # 绑定选择事件
-        instance_images.select(select_upload_pic_function, inputs=[run_button, upload_button, instance_images, hint], outputs=[run_button, upload_button, instance_images, hint])
-        upload_button.upload(upload_file, inputs=[upload_button, instance_images], outputs=[run_button, upload_button, instance_images, hint],queue=False)
+        instance_images_click_button.click(dblclick_pic_function, inputs=[run_button, upload_button, double_click_index, instance_images, hint], outputs=[run_button, upload_button, instance_images, hint])
+
+        upload_button.upload(upload_file, inputs=[upload_button, instance_images, hint], outputs=[run_button, upload_button, instance_images, hint],queue=False)
         clear_button.click(fn=lambda: [gr.Button(visible=False), gr.UploadButton(visible=True), None, gr.Markdown(value=hint.value)], inputs=None, outputs=[run_button, upload_button, instance_images, hint])
 
         run_button.click(fn=trainer.run,
