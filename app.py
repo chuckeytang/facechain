@@ -56,7 +56,7 @@ def select_function(evt: gr.SelectData):
     name = evt.value[1] if isinstance(evt.value, (tuple, list)) else evt.value
     matched = list(filter(lambda item: name == item['name'], styles))
     style = matched[0]
-    return gr.Text.update(value=style['name'], visible=True)
+    return gr.Text(value=style['name'], visible=True)
 
 
 def get_selected_image(state_image_list, evt: gr.SelectData):
@@ -69,19 +69,19 @@ def update_prompt(style_model):
     pos_prompt = generate_pos_prompt(style['name'], style['add_prompt_style'])
     multiplier_style = style['multiplier_style']
     multiplier_human = style['multiplier_human']
-    return gr.Textbox.update(value=pos_prompt), \
-           gr.Slider.update(value=multiplier_style), \
-           gr.Slider.update(value=multiplier_human)
+    return gr.Textbox(value=pos_prompt), \
+           gr.Slider(value=multiplier_style), \
+           gr.Slider(value=multiplier_human)
 
 
 def update_pose_model(pose_image, pose_model):
     if pose_image is None:
-        return gr.Radio.update(value=pose_models[0]['name']), gr.Image.update(visible=False)
+        return gr.Radio(value=pose_models[0]['name']), gr.Image(visible=False)
     else:
         if pose_model == 0:
             pose_model = 1
         pose_res_img = preprocess_pose(pose_image)
-        return gr.Radio.update(value=pose_models[pose_model]['name']), gr.Image.update(value=pose_res_img, visible=True)
+        return gr.Radio(value=pose_models[pose_model]['name']), gr.Image(value=pose_res_img, visible=True)
 
 
 def train_lora_fn(base_model_path=None, revision=None, sub_path=None, output_img_dir=None, work_dir=None, photo_num=0):
@@ -257,7 +257,6 @@ def launch_pipeline(uuid,
 
     folder_path = join_worker_data_dir(uuid, tmp_character_model)
     folder_list = []
-    print(f"chuckeytang : {folder_path}")
     if os.path.exists(folder_path):
         files = os.listdir(folder_path)
         for file in files:
@@ -871,14 +870,14 @@ def flash_model_list(uuid, base_model_index, lora_choice:gr.Dropdown):
     
     if not os.path.exists(folder_path):
         if lora_choice == 'preset':  
-            return gr.Radio.update(choices=[], value = None), \
-                gr.Gallery.update(value=[(item["img"], item["name"]) for item in sub_styles], visible=True), \
-                gr.Text.update(value=style_list[0], visible=True), \
-                gr.Dropdown.update(choices=lora_list, visible=True), gr.File.update(visible=True)
+            return gr.Radio(choices=[], value = None), \
+                gr.Gallery(value=[(item["img"], item["name"]) for item in sub_styles], visible=True), \
+                gr.Text(value=style_list[0], visible=True), \
+                gr.Dropdown(choices=lora_list, visible=True), gr.File(visible=True)
         else:
-            return gr.Radio.update(choices=[], value = None), \
-                gr.Gallery.update(visible=False), gr.Text.update(),\
-                gr.Dropdown.update(choices=lora_list, visible=True), gr.File.update(visible=True)
+            return gr.Radio(choices=[], value = None), \
+                gr.Gallery(visible=False), gr.Text(),\
+                gr.Dropdown(choices=lora_list, visible=True), gr.File(visible=True)
     else:
         files = os.listdir(folder_path)
         for file in files:
@@ -890,14 +889,14 @@ def flash_model_list(uuid, base_model_index, lora_choice:gr.Dropdown):
                     folder_list.append(file)
     
     if lora_choice == 'preset':
-        return gr.Radio.update(choices=folder_list, value = None), \
-            gr.Gallery.update(value=[(item["img"], item["name"]) for item in sub_styles], visible=True), \
-            gr.Text.update(value=style_list[0], visible=True), \
-            gr.Dropdown.update(choices=lora_list, visible=True), gr.File.update(visible=True)
+        return gr.Radio(choices=folder_list, value = None), \
+            gr.Gallery(value=[(item["img"], item["name"]) for item in sub_styles], visible=True), \
+            gr.Text(value=style_list[0], visible=True), \
+            gr.Dropdown(choices=lora_list, visible=True), gr.File(visible=True)
     else:
-        return gr.Radio.update(choices=folder_list, value = None), \
-            gr.Gallery.update(visible=False), gr.Text.update(), \
-            gr.Dropdown.update(choices=lora_list, visible=True), gr.File.update(visible=True)
+        return gr.Radio(choices=folder_list, value = None), \
+            gr.Gallery(visible=False), gr.Text(), \
+            gr.Dropdown(choices=lora_list, visible=True), gr.File(visible=True)
 
 
 def update_output_model(uuid):
@@ -922,9 +921,9 @@ def update_output_model(uuid):
                     if os.path.exists(file_lora_path) or os.path.exists(file_lora_path_swift):
                         folder_list.append(file)
     if len(folder_list) == 0:
-        return gr.Radio.update(choices=[], value = None)
+        return gr.Radio(choices=[], value = None)
 
-    return gr.Radio.update(choices=folder_list)
+    return gr.Radio(choices=folder_list)
 
 
 def update_output_model_inpaint(uuid):
@@ -937,7 +936,7 @@ def update_output_model_inpaint(uuid):
     folder_path = join_worker_data_dir(uuid, 'ly261666/cv_portrait_model')
     folder_list = ['不重绘该人物(Do not inpaint this character)']
     if not os.path.exists(folder_path):
-        return gr.Radio.update(choices=[], value = None), gr.Dropdown.update(choices=style_list)
+        return gr.Radio(choices=[], value = None), gr.Dropdown(choices=style_list)
     else:
         files = os.listdir(folder_path)
         for file in files:
@@ -948,7 +947,7 @@ def update_output_model_inpaint(uuid):
                 if os.path.exists(file_lora_path) or os.path.exists(file_lora_path_swift):
                     folder_list.append(file)
 
-    return gr.Radio.update(choices=folder_list, value=folder_list[0]), gr.Radio.update(choices=folder_list, value=folder_list[0])
+    return gr.Radio(choices=folder_list, value=folder_list[0]), gr.Radio(choices=folder_list, value=folder_list[0])
 
 
 def add_file_webcam(instance_images, file):
@@ -977,7 +976,7 @@ def update_output_model_tryon(uuid):
     folder_path = join_worker_data_dir(uuid, 'ly261666/cv_portrait_model')
     folder_list = ['不重绘该人物(Do not inpaint this character)']
     if not os.path.exists(folder_path):
-        return gr.Radio.update(choices=[], value = None)
+        return gr.Radio(choices=[], value = None)
     else:
         files = os.listdir(folder_path)
         for file in files:
@@ -987,7 +986,7 @@ def update_output_model_tryon(uuid):
                 if os.path.exists(file_lora_path):
                     folder_list.append(file)
 
-    return gr.Radio.update(choices=folder_list, value=folder_list[0])
+    return gr.Radio(choices=folder_list, value=folder_list[0])
 
 def init_output_model_tryon(uuid):
     if not uuid:
@@ -1015,14 +1014,14 @@ def init_output_model_tryon(uuid):
 
 def update_output_model_num(num_faces):
     if num_faces == 1:
-        return gr.Radio.update(), gr.Radio.update(visible=False)
+        return gr.Radio(), gr.Radio(visible=False)
     else:
-        return gr.Radio.update(), gr.Radio.update(visible=True)
+        return gr.Radio(), gr.Radio(visible=True)
 
 
 def update_output_image_result(uuid):
     image_list = get_previous_image_result(uuid)
-    return gr.Gallery.update(value=image_list), image_list
+    return gr.Gallery(value=image_list), image_list
 
 
 def upload_file(files, current_files):
@@ -1048,7 +1047,7 @@ def upload_lora_file(uuid, lora_file):
     lora_list = sorted(os.listdir(temp_lora_dir))
     lora_list = ["preset"] + lora_list
     
-    return gr.Dropdown.update(choices=lora_list, value=filename)
+    return gr.Dropdown(choices=lora_list, value=filename)
 
 
 def clear_lora_file(uuid, lora_file):
@@ -1058,7 +1057,7 @@ def clear_lora_file(uuid, lora_file):
         else:
             uuid = 'qw'
     
-    return gr.Dropdown.update(value="preset")
+    return gr.Dropdown(value="preset")
 
 
 def change_lora_choice(lora_choice, base_model_index):
@@ -1069,10 +1068,10 @@ def change_lora_choice(lora_choice, base_model_index):
         sub_styles.append(matched[0])
     
     if lora_choice == 'preset':
-        return gr.Gallery.update(value=[(item["img"], item["name"]) for item in sub_styles], visible=True), \
-               gr.Text.update(value=style_list[0])
+        return gr.Gallery(value=[(item["img"], item["name"]) for item in sub_styles], visible=True), \
+               gr.Text(value=style_list[0])
     else:
-        return gr.Gallery.update(visible=False), gr.Text.update(visible=False)
+        return gr.Gallery(visible=False), gr.Text(visible=False)
 
 
 def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None, style_model=None, deal_type="load"):
@@ -1084,7 +1083,7 @@ def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None
             
     if deal_type == "update":
         if (base_model_index is None) or (user_model is None) or (lora_choice is None) or (style_model is None and lora_choice == 'preset'):
-            return gr.Gallery.update(value=[], visible=True), gr.Gallery.update(value=[], visible=True) # error triggered by option change, won't pop up warning
+            return gr.Gallery(value=[], visible=True), gr.Gallery(value=[], visible=True) # error triggered by option change, won't pop up warning
         
     if base_model_index is None:
         raise gr.Error('请选择基模型!')
@@ -1106,7 +1105,7 @@ def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None
         save_dir = os.path.join(save_dir, 'lora_' + os.path.basename(lora_choice).split('.')[0])
     
     if not os.path.exists(save_dir):
-        return gr.Gallery.update(value=[], visible=True), gr.Gallery.update(value=[], visible=True)
+        return gr.Gallery(value=[], visible=True), gr.Gallery(value=[], visible=True)
     
     if deal_type == "load" or deal_type == "update":
         single_dir = os.path.join(save_dir, 'single')
@@ -1120,10 +1119,10 @@ def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None
             concat_imgs = sorted(os.listdir(concat_dir))
             concat_imgs = [os.path.join(concat_dir, img) for img in concat_imgs]
         
-        return gr.Gallery.update(value=single_imgs, visible=True), gr.Gallery.update(value=concat_imgs, visible=True)
+        return gr.Gallery(value=single_imgs, visible=True), gr.Gallery(value=concat_imgs, visible=True)
     elif deal_type == "delete":
         shutil.rmtree(save_dir)
-        return gr.Gallery.update(value=[], visible=True), gr.Gallery.update(value=[], visible=True)
+        return gr.Gallery(value=[], visible=True), gr.Gallery(value=[], visible=True)
 
 
 def train_input():
@@ -1133,7 +1132,7 @@ def train_input():
         uuid = gr.Text(label="modelscope_uuid", visible=False)
         with gr.Row():
             with gr.Column():
-                with gr.Box():
+                with gr.Group():
                     output_model_name = gr.Textbox(label="人物lora名称", value='人物名1', lines=1)
                     base_model_name = gr.Dropdown(choices=['AI-ModelScope/stable-diffusion-v1-5',
                                                            SDXL_BASE_MODEL_ID],
@@ -1148,7 +1147,7 @@ def train_input():
 
                         clear_button = gr.Button("清空图片")
                     #with gr.Row():
-                    #    image = gr.Image(source='webcam',type="filepath",visible=False).style(height=500,width=500)
+                    #    image = gr.Image(source='webcam',type="filepath",visible=False, height=500,width=500)
                     clear_button.click(fn=lambda: [], inputs=None, outputs=instance_images)
 
                     upload_button.upload(upload_file, inputs=[upload_button, instance_images], outputs=instance_images,
@@ -1169,13 +1168,13 @@ def train_input():
         run_button = gr.Button('开始训练(等待上传图片加载显示出来再点, 否则会报错)... ')
 
 
-        with gr.Box():
+        with gr.Group():
             gr.Markdown('''
             <center>请等待训练完成，请勿刷新或关闭页面。</center>
             ''')
             output_message = gr.Markdown()
 
-        # with gr.Box():
+        # with gr.Group():
         #     gr.Markdown('''
         #     碰到抓狂的错误或者计算资源紧张的情况下，推荐直接在[NoteBook](https://modelscope.cn/my/mynotebook/preset)上进行体验。
 
@@ -1216,7 +1215,7 @@ def inference_input():
                     with gr.Column(scale=1):
                         update_button = gr.Button('刷新人物LoRA列表')
 
-                with gr.Box():
+                with gr.Group():
                     style_model = gr.Text(label='请选择一种风格:', interactive=False)
                     gallery = gr.Gallery(value=[(item["img"], item["name"]) for item in styles],
                                         label="风格",
@@ -1238,7 +1237,7 @@ def inference_input():
                         lora_file = gr.File(
                             value=None,
                             label="上传LoRA文件(Upload LoRA file)",
-                            type="file",
+                            type="filepath",
                             file_types=[".safetensors"],
                             file_count="single",
                             visible=False,
@@ -1272,13 +1271,13 @@ def inference_input():
                     
                     with gr.Accordion("姿态控制(Pose control)", open=False, visible=False):
                         with gr.Row():
-                            pose_image = gr.Image(source='upload', type='filepath', label='姿态图片(Pose image)', height=250)
-                            pose_res_image = gr.Image(source='upload', interactive=False, label='姿态结果(Pose result)', visible=False, height=250)
+                            pose_image = gr.Image(type='filepath', label='姿态图片(Pose image)', height=250)
+                            pose_res_image = gr.Image(interactive=False, label='姿态结果(Pose result)', visible=False, height=250)
                         gr.Examples(pose_examples['man'], inputs=[pose_image], label='男性姿态示例')
                         gr.Examples(pose_examples['woman'], inputs=[pose_image], label='女性姿态示例')
                         pose_model = gr.Radio(choices=pmodels, value=pose_models[0]['name'],
                                             type="index", label="姿态控制模型(Pose control model)")
-                with gr.Box():
+                with gr.Group():
                     num_images = gr.Number(
                         label='生成图片数量', value=3, precision=1, minimum=1, maximum=6)
 
@@ -1290,28 +1289,28 @@ def inference_input():
                 # 初始更新控件
                 outputs = flash_model_list(uuid.value, 1, 'preset')
                 
-                def clean_update_data(data, supported_keys):
-                    """ 清洗更新数据，只保留支持的键 """
-                    return {key: data[key] for key in supported_keys if key in data}
+                # def clean_update_data(data, supported_keys):
+                #     """ 清洗更新数据，只保留支持的键 """
+                #     return {key: data[key] for key in supported_keys if key in data}
 
-                # 定义 File 控件支持的键
-                user_model_keys = ['choices', 'value']
-                gallery_keys = ['value', 'visible']
-                style_model_keys = ['value', 'visible']
-                lora_choice_keys = ['choices', 'value']
-                file_supported_keys = ['file', 'filename', 'visible']
+                # # 定义 File 控件支持的键
+                # user_model_keys = ['choices', 'value']
+                # gallery_keys = ['value', 'visible']
+                # style_model_keys = ['value', 'visible']
+                # lora_choice_keys = ['choices', 'value']
+                # file_supported_keys = ['file', 'filename', 'visible']
 
-                # 清洗 outputs[4] 的数据
-                cleaned_data = clean_update_data(outputs[0], user_model_keys)
-                user_model.update(**cleaned_data)
-                cleaned_data = clean_update_data(outputs[1], gallery_keys)
-                gallery.update(**cleaned_data)
-                cleaned_data = clean_update_data(outputs[2], style_model_keys)
-                style_model.update(**cleaned_data)
-                cleaned_data = clean_update_data(outputs[3], lora_choice_keys)
-                lora_choice.update(**cleaned_data)
-                cleaned_data = clean_update_data(outputs[4], file_supported_keys)
-                lora_file.update(**cleaned_data)
+                # # 清洗 outputs[4] 的数据
+                # cleaned_data = clean_update_data(outputs[0], user_model_keys)
+                # user_model.update(**cleaned_data)
+                # cleaned_data = clean_update_data(outputs[1], gallery_keys)
+                # gallery.update(**cleaned_data)
+                # cleaned_data = clean_update_data(outputs[2], style_model_keys)
+                # style_model.update(**cleaned_data)
+                # cleaned_data = clean_update_data(outputs[3], lora_choice_keys)
+                # lora_choice.update(**cleaned_data)
+                # cleaned_data = clean_update_data(outputs[4], file_supported_keys)
+                # lora_file.update(**cleaned_data)
 
 
         with gr.Row():
@@ -1324,11 +1323,11 @@ def inference_input():
 
                 delete_history_text = gr.Text("delete", visible=False)
 
-        with gr.Box():
+        with gr.Group():
             infer_progress = gr.Textbox(label="生成进度", value="当前无生成任务", interactive=False)
-        with gr.Box():
+        with gr.Group():
             gr.Markdown('生成结果')
-            output_images = gr.Gallery(label='Output', show_label=False).style(columns=3, rows=2, height=600,
+            output_images = gr.Gallery(label='Output', show_label=False, columns=3, rows=2, height=600,
             object_fit="contain")
         with gr.Accordion(label="历史生成结果", open=False, visible=False):
             with gr.Row():
@@ -1396,11 +1395,11 @@ def inference_inpaint():
 
         with gr.Row():
             with gr.Column():
-                with gr.Box():
+                with gr.Group():
                     gr.Markdown('请选择或上传模板图片(Please select or upload a template image)：')
                     template_image_list = [[i] for idx, i in enumerate(preset_template)]
                     print(template_image_list)
-                    template_image = gr.Image(source='upload', type='filepath', label='模板图片(Template image)')
+                    template_image = gr.Image(type='filepath', label='模板图片(Template image)')
                     gr.Examples(template_image_list, inputs=[template_image], label='模板示例(Template examples)')
 
                 base_model_list = []
@@ -1422,13 +1421,13 @@ def inference_inpaint():
                         update_button = gr.Button('刷新人物LoRA列表(Refresh character LoRAs)')
 
         display_button = gr.Button('开始生成(Start Generation)')
-        with gr.Box():
+        with gr.Group():
             infer_progress = gr.Textbox(
                 label="生成(Generation Progress)",
                 value="No task currently",
                 interactive=False
             )
-        with gr.Box():
+        with gr.Group():
             gr.Markdown('生成结果(Generated Results)')
             output_images = gr.Gallery(
                 label='输出(Output)',
@@ -1484,7 +1483,7 @@ def inference_talkinghead():
                 audio_microphone = gr.Audio(source="microphone", type="filepath", label="通过麦克风直接录制音频(record audio from microphone)", visible=False)
                 audio_upload = gr.Audio(source="upload",type="filepath", label="上传本地音频文件(upload local audio file)", visible=False)
             with gr.Column(variant='panel'): 
-                with gr.Box():
+                with gr.Group():
                     gr.Markdown("设置(Settings)")
                     with gr.Column(variant='panel'):
                         pose_style = gr.Slider(minimum=0, maximum=45, step=1, label="头部姿态(Pose style)", info="模型自主学习到的头部姿态(the head pose style that model learn)", value=0)
@@ -1496,7 +1495,7 @@ def inference_talkinghead():
                         enhancer = gr.Checkbox(label="使用GFPGAN增强人脸清晰度(GFPGAN as Face enhancer)")
                         batch_size = gr.Slider(label="批次大小(batch size)", step=1, maximum=10, value=1, info="当处理长视频，可以分成多段并行合成(when systhesizing long video, this will process it in parallel)")
                         submit = gr.Button('生成(Generate)', variant='primary')
-                with gr.Box():
+                with gr.Group():
                         infer_progress = gr.Textbox(value="当前无任务(No task currently)", show_label=False, interactive=False)
                         gen_video = gr.Video(label="Generated video", format="mp4", width=256)
 
@@ -1534,11 +1533,11 @@ def inference_tryon():
 
         with gr.Row():
             with gr.Column():
-                with gr.Box():
+                with gr.Group():
                     gr.Markdown('请选择或上传包含服饰的模特图(Please select or upload a model image with given garment)：')
                     template_image_list = [[i] for idx, i in enumerate(preset_template)]
                     print(template_image_list)
-                    template_image = gr.Image(source='upload', type='filepath', label='服饰图片(Garment image)')
+                    template_image = gr.Image(type='filepath', label='服饰图片(Garment image)')
                     gr.Examples(template_image_list, inputs=[template_image], label='模板示例(Garment examples)')
 
                 base_model_list = []
@@ -1564,7 +1563,7 @@ def inference_tryon():
                                   'in the bar, restaurant',
                                   'city background, street',
                                   'in the woods']
-        with gr.Box():
+        with gr.Group():
             background_prompt = gr.Textbox(label="背景提示语(Background prompt)",
                                            lines=3, value='simple background, high-class pure color background')
             gr.Examples(background_prompt_list, inputs=[background_prompt], label='背景提示语示例(Background prompt examples)')
@@ -1577,13 +1576,13 @@ def inference_tryon():
                         ''')
 
         display_button = gr.Button('开始生成(Start Generation)')
-        with gr.Box():
+        with gr.Group():
             infer_progress = gr.Textbox(
                 label="生成(Generation Progress)",
                 value="No task currently",
                 interactive=False
             )
-        with gr.Box():
+        with gr.Group():
             gr.Markdown('生成结果(Generated Results)')
             output_images = gr.Gallery(
                 label='输出(Output)',

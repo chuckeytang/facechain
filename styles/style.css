@@ -1,9 +1,5 @@
-body, html {
-    height: 100%;
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: url('background.jpg') no-repeat center center fixed; 
-    background-size: cover;
+.gradio-container {
+    background: url('file=resources/background.jpg')
 }
 
 .container {
@@ -14,8 +10,12 @@ body, html {
 
 
 h1 {
-    color: white;
-    margin-bottom: 40px;
+    color: rgb(55, 55, 55) !important;
+    margin-bottom: 90px !important;
+}
+
+p {
+  color:rgb(55, 55, 55) !important;
 }
 
 .button {

@@ -142,7 +142,7 @@ def inference_animate():
         
         with gr.Row(equal_height=False):
             with gr.Column(variant='panel'):
-                with gr.Box():
+                with gr.Group():
                     source_image  = gr.Image(label="源图片(source image)", source="upload", type="filepath")
                     with gr.Column():
                         examples_image=[
@@ -162,7 +162,7 @@ def inference_animate():
                         ]
                         gr.Examples(examples=examples_video, inputs=[motion_sequence],
                                     outputs=[motion_sequence],  fn=identity_function, cache_examples=os.getenv('SYSTEM') == 'spaces', label='Video Example')
-                with gr.Box():
+                with gr.Group():
                     gr.Markdown("""
                     注意: 
                     - 如果没有动作序列视频，可以提供原视频文件进行动作序列视频生成（If you don't have motion sequence, you may generate motion sequence from a source video.)
@@ -178,13 +178,13 @@ def inference_animate():
                         outputs=[gen_progress, motion_sequence])
 
             with gr.Column(variant='panel'): 
-                with gr.Box():
+                with gr.Group():
                     gr.Markdown("设置(Settings)")
                     with gr.Column(variant='panel'):
                         random_seed         = gr.Textbox(label="随机种子(Random seed)", value=1, info="default: -1")
                         sampling_steps      = gr.Textbox(label="采样步数(Sampling steps)", value=25, info="default: 25")
                         submit              = gr.Button("生成(Generate)", variant='primary')
-                with gr.Box():
+                with gr.Group():
                         infer_progress = gr.Textbox(value="当前无任务(No task currently)")
                         gen_video = gr.Video(label="Generated video", format="mp4")
 
