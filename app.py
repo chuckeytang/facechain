@@ -328,6 +328,28 @@ def launch_pipeline(uuid,
     instance_data_dir = join_worker_data_dir(uuid, 'training_data', tmp_character_model, user_model)
     lora_model_path = join_worker_data_dir(uuid, tmp_character_model, user_model)
 
+    print(f"chuckeytang base_model {base_model}")
+    print(f"chuckeytang revision {revision}")
+    print(f"chuckeytang sub_path {sub_path}")
+    print(f"chuckeytang lora_choice {lora_choice}")
+    print(f"chuckeytang style_model {style_model}")
+    print(f"chuckeytang SDXL_BASE_MODEL_ID {SDXL_BASE_MODEL_ID}")
+    print(f"chuckeytang character_model {character_model}")
+
+    print(f"chuckeytang pose_model_path {pose_model_path}")
+    print(f"chuckeytang pose_image {pose_image}")
+    print(f"chuckeytang use_depth_control {use_depth_control}")
+    print(f"chuckeytang pos_prompt {pos_prompt}")
+    print(f"chuckeytang neg_prompt {neg_prompt}")
+    print(f"chuckeytang style_model_path {style_model_path}")
+    print(f"chuckeytang multiplier_style {multiplier_style}")
+    print(f"chuckeytang multiplier_human {multiplier_human}")
+    print(f"chuckeytang use_main_model {use_main_model}")
+    print(f"chuckeytang use_face_swap {use_face_swap}")
+    print(f"chuckeytang use_post_process {use_post_process}")
+    print(f"chuckeytang use_stylization {use_stylization}")
+    print(f"chuckeytang lora_model_path {lora_model_path}")
+    
     gen_portrait = GenPortrait(pose_model_path, pose_image, use_depth_control, pos_prompt, neg_prompt, style_model_path, 
                                multiplier_style, multiplier_human, use_main_model,
                                use_face_swap, use_post_process,
@@ -1207,7 +1229,8 @@ def inference_input():
                 for base_model in base_models:
                     base_model_list.append(BASE_MODEL_MAP[base_model['name']])
 
-                base_model_index = gr.Radio(label="基模型选择", choices=base_model_list, type="index", value=None)
+                print(f"chuckeytang base_model_list {base_model_list}")
+                base_model_index = gr.Radio(label="基模型选择", choices=base_model_list, type="index", value="写真模型")
                 
                 with gr.Row():
                     with gr.Column(scale=2):

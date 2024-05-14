@@ -189,6 +189,7 @@ def prepare_dataset(instance_images: list, output_dataset_dir):
     if not os.path.exists(output_dataset_dir):
         os.makedirs(output_dataset_dir)
     for i, temp_path in enumerate(instance_images):
+        print(f"temp_path {temp_path}")
         image = PIL.Image.open(temp_path)
         # image = PIL.Image.open(temp_path.name)
         '''
