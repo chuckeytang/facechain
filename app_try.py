@@ -142,10 +142,11 @@ class Trainer:
             run_button = gr.Button(visible=False)
             upload_button = gr.Button(visible=False)
             clear_button = gr.Button(visible=False)
+            inference_button1 = gr.Button(visible=True)
 
             user_model_list = update_output_model()
             print(f"chuckeytang user_model_list: {user_model_list}")
-            return run_button, upload_button, clear_button, gr.Markdown(value=message), user_model_list
+            return run_button, upload_button, clear_button, inference_button1, gr.Markdown(value=message), user_model_list
         finally:
             IS_TRAINING = False
 
@@ -161,7 +162,7 @@ def get_model_list():
 
     return sub_styles
 
-def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None, style_model=None, deal_type="load"):
+def deal_history_inner(uuid, base_model_index=None , user_model=None, lora_choice=None, style_model=None, deal_type="load"):
     if not uuid:
         if os.getenv("MODELSCOPE_ENVIRONMENT") == 'studio':
             raise gr.Error("请登陆后使用! (Please login first)")
@@ -205,11 +206,14 @@ def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None
         if os.path.exists(concat_dir):
             concat_imgs = sorted(os.listdir(concat_dir))
             concat_imgs = [os.path.join(concat_dir, img) for img in concat_imgs]
-        
-        return gr.Gallery(value=single_imgs, visible=True), gr.Gallery(value=concat_imgs, visible=True)
+        return single_imgs, concat_imgs
     elif deal_type == "delete":
         shutil.rmtree(save_dir)
-        return gr.Gallery(value=[], visible=True), gr.Gallery(value=[], visible=True)
+        return [], []
+
+def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None, style_model=None, deal_type="load"):
+    single_imgs, concat_imgs = deal_history_inner(uuid, base_model_index , user_model, lora_choice, style_model, deal_type)
+    return gr.Gallery(value=single_imgs, visible=True), gr.Gallery(value=concat_imgs, visible=True)
         
 def update_prompt(style_model):
     matched = list(filter(lambda item: style_model == item['name'], styles))
@@ -465,8 +469,22 @@ def show_train_interface(state):
     main_content = gr.Column(visible=False)
     train_content = gr.Column(visible=True)
     infer_content = gr.Column(visible=False)
+    history_content = gr.Column(visible=False)
+    inference_button1 = gr.Button(visible=False)
     global init_hint_content
-    return state, main_content, train_content, infer_content, "", [], init_hint_content
+    return state, main_content, train_content, infer_content, history_content, "", [], inference_button1, init_hint_content
+
+def show_history_interface(state):
+    state['page'] = "history"
+    main_content = gr.Column(visible=False)
+    train_content = gr.Column(visible=False)
+    infer_content = gr.Column(visible=False)
+    history_content = gr.Column(visible=True)
+    inference_button1 = gr.Button(visible=False)
+
+    single_imgs, concat_imgs = deal_history_inner(uuid, base_model_index , user_model, lora_choice, style_model, deal_type)
+    global init_hint_content
+    return state, main_content, train_content, infer_content, history_content, gr.Gallery(value=concat_imgs, visible=True)
 
 def show_inference_interface(state):
     """显示推理写真的界面并隐藏其他界面。"""
@@ -475,7 +493,8 @@ def show_inference_interface(state):
     main_content = gr.Column(visible=False)
     train_content = gr.Column(visible=False)
     infer_content = gr.Column(visible=True)
-    return state, main_content, train_content, infer_content
+    history_content = gr.Column(visible=False)
+    return state, main_content, train_content, infer_content, history_content
 
 def show_main_interface(state):
     """显示主界面并隐藏训练模型的界面。"""
@@ -483,7 +502,8 @@ def show_main_interface(state):
     main_content = gr.Column(visible=True)
     train_content = gr.Column(visible=False)
     infer_content = gr.Column(visible=False)
-    return state, main_content, train_content, infer_content
+    history_content = gr.Column(visible=False)
+    return state, main_content, train_content, infer_content, history_content
 
 # 用于radio样式的模型名列表
 def get_user_model_list():
@@ -592,6 +612,9 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
                 gr.Markdown("step 2:")
             with gr.Column(scale=2):
                 button_infer = gr.Button("制作AI写真", elem_classes="button")
+        with gr.Row():
+            with gr.Column():
+                button_history = gr.Button("历史写真作品", elem_classes="button")
         gr.Markdown("</div>")
 
     train_content = gr.Column()
@@ -599,6 +622,10 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
 
     infer_content = gr.Column()
     infer_content.visible = False
+
+    history_content = gr.Column()
+    history_content.visible = False
+
     with infer_content:
         gr.Markdown("<center>step2 制作AI写真</center>")
         uuid = gr.Text(label="modelscope_uuid", visible=False, value='qw')
@@ -621,7 +648,7 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
                                     interactive=False,
                                     elem_id="gallery",
                                     show_share_button=False)
-            inference_button = gr.Button('生成AI写真')  
+            inference_button2 = gr.Button('生成AI写真')  
 
         with gr.Column() as inference_result_block:
             inference_result_block.visible = False
@@ -668,12 +695,6 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
                                         step=0.05, label='形象权重(Multiplier human)', visible=False)
 
         style_model.change(update_prompt, style_model, [pos_prompt, multiplier_style, multiplier_human], queue=False)
-        
-        update_history_text = gr.Text("update", visible=False)
-        with gr.Accordion(label="历史生成结果(History)", open=False, visible=False):
-            with gr.Row():
-                single_history = gr.Gallery(label='单张图片')
-                batch_history = gr.Gallery(label='图片组')
                 
         pmodels = []
         for pmodel in pose_models:
@@ -693,7 +714,7 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
 
         user_model_gallery.select(select_user_model_function, None, user_model, queue=False)
         gallery.select(select_function, None, style_model, queue=False)
-        inference_button.click(fn=launch_pipeline,
+        inference_button2.click(fn=launch_pipeline,
                              inputs=[state, uuid, pos_prompt, neg_prompt, base_model_index, user_model, num_images, lora_choice, style_model, multiplier_style, multiplier_human,
                                      pose_model, pose_image, sr_img_size, cartoon_style_idx, use_lcm_idx],
                              outputs=[state, infer_choose_block, inference_result_block, infer_progress, output_images],
@@ -710,6 +731,8 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
             inputs=[state],
             outputs=[state, infer_choose_block, inference_result_block]
         )
+
+
     with train_content:
         trainer = Trainer()
         uuid = gr.Text(label="modelscope_uuid", visible=False, value='qw')
@@ -725,6 +748,7 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
         run_button = gr.Button('开始训练模型分身', visible=False)
         clear_button = gr.Button("清空图片")
         button_home1 = gr.Button("回到首页")
+        inference_button1 = gr.Button('生成AI写真', visible=False)  
 
         double_click_index = gr.Textbox(visible=False, elem_id="double_click_index")  # 用于接收双击的图片索引
         instance_images_click_button = gr.Button("处理图片", elem_id="instance_images_click_button", visible=False)  # 模拟gallery中图片处理按钮
@@ -744,13 +768,19 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
                         instance_images,
                         output_model_name,
                     ],
-                    outputs=[run_button, upload_button, clear_button, hint, user_model])
+                    outputs=[run_button, upload_button, clear_button, inference_button1, hint, user_model])
+        
+    with history_content:
+        history_images = gr.Gallery(label="历史写真",allow_preview=False, interactive=False)
+        button_home3 = gr.Button("回到首页")
 
-    button_train.click(show_train_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, 
-    output_model_name, instance_images, hint])
-    button_infer.click(show_inference_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content])
-    button_home1.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content])
-    button_home2.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content])
+    button_train.click(show_train_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content, 
+    output_model_name, instance_images, inference_button1, hint])
+    button_infer.click(show_inference_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
+    button_home1.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
+    button_home2.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
+    button_home3.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
+    button_history.click(show_history_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content, history_images])
 
 if __name__ == "__main__":
     set_spawn_method()
