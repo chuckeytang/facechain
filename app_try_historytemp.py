@@ -146,7 +146,7 @@ class Trainer:
 
             user_model_list = update_output_model()
             print(f"chuckeytang user_model_list: {user_model_list}")
-            return run_button, upload_button, clear_button, inference_button1, gr.Markdown(value=message), gr.Gallery(value=user_model_list, allow_preview=False, interactive=False, label="分身")
+            return run_button, upload_button, clear_button, inference_button1, gr.Markdown(value=message), user_model_list
         finally:
             IS_TRAINING = False
 
@@ -162,7 +162,8 @@ def get_model_list():
 
     return sub_styles
 
-def deal_history_inner(uuid, base_model_index=None, user_model=None, lora_choice=None, style_model=None, deal_type="load"):
+def deal_history_inner(uuid, base_model_index=None , user_model=None, lora_choice=None, style_model=None, deal_type="load"):
+    print(f"chuckeytang deal_type {deal_type}")
     if not uuid:
         if os.getenv("MODELSCOPE_ENVIRONMENT") == 'studio':
             raise gr.Error("请登陆后使用! (Please login first)")
@@ -173,9 +174,6 @@ def deal_history_inner(uuid, base_model_index=None, user_model=None, lora_choice
         if (base_model_index is None) or (user_model is None) or (lora_choice is None) or (style_model is None and lora_choice == 'preset'):
             return gr.Gallery(value=[], visible=True), gr.Gallery(value=[], visible=True) # error triggered by option change, won't pop up warning
         
-    if deal_type == "load":
-        return load_all_history(uuid, base_model_index, user_model, lora_choice, style_model)
-    
     if base_model_index is None:
         raise gr.Error('请选择基模型!')
     if user_model is None:
@@ -194,75 +192,27 @@ def deal_history_inner(uuid, base_model_index=None, user_model=None, lora_choice
         save_dir = os.path.join(save_dir, 'style_' + style_model)
     else:
         save_dir = os.path.join(save_dir, 'lora_' + os.path.basename(lora_choice).split('.')[0])
+    print(f"chuckeytang save_dir {save_dir}")
     
     if not os.path.exists(save_dir):
-        return [], []
+        return gr.Gallery(value=[], visible=True), gr.Gallery(value=[], visible=True)
     
     if deal_type == "load" or deal_type == "update":
         single_dir = os.path.join(save_dir, 'single')
         concat_dir = os.path.join(save_dir, 'concat')
+        print(f"chuckeytang concat_dir {concat_dir}")
         single_imgs = []
         concat_imgs = []
         if os.path.exists(single_dir):
             single_imgs = sorted(os.listdir(single_dir))
-            single_imgs = [(os.path.join(single_dir, img), f"{user_model} {style_model}") for img in single_imgs]
+            single_imgs = [os.path.join(single_dir, img) for img in single_imgs]
         if os.path.exists(concat_dir):
             concat_imgs = sorted(os.listdir(concat_dir))
-            concat_imgs = [(os.path.join(concat_dir, img), f"{user_model} {style_model}") for img in concat_imgs]
+            concat_imgs = [os.path.join(concat_dir, img) for img in concat_imgs]
         return single_imgs, concat_imgs
     elif deal_type == "delete":
         shutil.rmtree(save_dir)
         return [], []
-
-import os
-
-def load_all_history(uuid, base_model_index=None, user_model=None, lora_choice=None, style_model=None):
-    all_single_imgs = []
-    all_concat_imgs = []
-
-    base_dir = join_worker_data_dir(uuid, 'inference_result')
-    if not os.path.exists(base_dir):
-        return [], []
-
-    base_models_to_check = [bm['model_id'].split('/')[0] for bm in base_models] if base_model_index is None else [base_models[base_model_index]['model_id'].split('/')[0]]
-    styles_to_check = [style['name'] for style in styles] if style_model is None else [style_model]
-
-    for base_model in os.listdir(base_dir):
-        if base_model not in base_models_to_check:
-            continue
-        base_model_dir = os.path.join(base_dir, base_model)
-        for user_model_name in os.listdir(base_model_dir):
-            if user_model is not None and user_model_name != user_model:
-                continue
-            user_model_dir = os.path.join(base_model_dir, user_model_name)
-            for lora_or_style in os.listdir(user_model_dir):
-                if lora_choice is not None and lora_choice != lora_or_style:
-                    continue
-                model_dir = os.path.join(user_model_dir, lora_or_style)
-                for style in styles_to_check:
-                    style_dir = os.path.join(model_dir, f"style_{style}")
-
-                    single_dir = os.path.join(style_dir, 'single')
-                    concat_dir = os.path.join(style_dir, 'concat')
-                    if os.path.exists(single_dir):
-                        single_imgs = sorted(os.listdir(single_dir))
-                        single_imgs = [(os.path.join(single_dir, img), f"{lora_or_style}&{style}", os.path.getmtime(os.path.join(single_dir, img))) for img in single_imgs]
-                        all_single_imgs.extend(single_imgs)
-                    
-                    if os.path.exists(concat_dir):
-                        concat_imgs = sorted(os.listdir(concat_dir))
-                        concat_imgs = [(os.path.join(concat_dir, img), f"{lora_or_style}&{style}", os.path.getmtime(os.path.join(concat_dir, img))) for img in concat_imgs]
-                        all_concat_imgs.extend(concat_imgs)
-
-    # Sort by last modified time in descending order
-    all_single_imgs = sorted(all_single_imgs, key=lambda x: x[2], reverse=True)
-    all_concat_imgs = sorted(all_concat_imgs, key=lambda x: x[2], reverse=True)
-
-    # Remove the timestamp before returning
-    all_single_imgs = [(img, label) for img, label, _ in all_single_imgs]
-    all_concat_imgs = [(img, label) for img, label, _ in all_concat_imgs]
-
-    return all_single_imgs, all_concat_imgs
 
 def deal_history(uuid, base_model_index=None , user_model=None, lora_choice=None, style_model=None, deal_type="load"):
     single_imgs, concat_imgs = deal_history_inner(uuid, base_model_index , user_model, lora_choice, style_model, deal_type)
@@ -392,6 +342,27 @@ def launch_pipeline(state,
         instance_data_dir = join_worker_data_dir(uuid, 'training_data', tmp_character_model, user_model)
         lora_model_path = join_worker_data_dir(uuid, tmp_character_model, user_model)
 
+        print(f"chuckeytang base_model {base_model}")
+        print(f"chuckeytang revision {revision}")
+        print(f"chuckeytang sub_path {sub_path}")
+        print(f"chuckeytang lora_choice {lora_choice}")
+        print(f"chuckeytang style_model {style_model}")
+        print(f"chuckeytang SDXL_BASE_MODEL_ID {SDXL_BASE_MODEL_ID}")
+        print(f"chuckeytang character_model {character_model}")
+
+        print(f"chuckeytang pose_model_path {pose_model_path}")
+        print(f"chuckeytang pose_image {pose_image}")
+        print(f"chuckeytang use_depth_control {use_depth_control}")
+        print(f"chuckeytang pos_prompt {pos_prompt}")
+        print(f"chuckeytang neg_prompt {neg_prompt}")
+        print(f"chuckeytang style_model_path {style_model_path}")
+        print(f"chuckeytang multiplier_style {multiplier_style}")
+        print(f"chuckeytang multiplier_human {multiplier_human}")
+        print(f"chuckeytang use_main_model {use_main_model}")
+        print(f"chuckeytang use_face_swap {use_face_swap}")
+        print(f"chuckeytang use_post_process {use_post_process}")
+        print(f"chuckeytang use_stylization {use_stylization}")
+        print(f"chuckeytang lora_model_path {lora_model_path}")
         gen_portrait = GenPortrait(pose_model_path, pose_image, use_depth_control, pos_prompt, neg_prompt, style_model_path, 
                                 multiplier_style, multiplier_human, use_main_model,
                                 use_face_swap, use_post_process,
@@ -408,9 +379,9 @@ def launch_pipeline(state,
                     cur_done_count = inference_done_count
                     to_wait = before_queue_size - (cur_done_count - before_done_count)
                     yield [state, infer_choose_block, inference_result_block, "排队等待资源中, 前方还有{}个生成任务, 预计需要等待{}分钟...".format(to_wait, to_wait * 2.5),
-                            None]
+                            None, None]
                 else:
-                    yield [state, infer_choose_block, inference_result_block, "正在为你生成中，请耐心等待...", None]
+                    yield [state, infer_choose_block, inference_result_block, "正在为你生成中，请耐心等待...", None, None]
                 time.sleep(1)
 
         outputs = future.result()
@@ -434,6 +405,10 @@ def launch_pipeline(state,
             num = len(os.listdir(os.path.join(save_dir, 'single')))
             cv2.imwrite(os.path.join(save_dir, 'single', str(num) + '.png'), img)
         
+        # 刷新写真历史
+        single_imgs, concat_imgs = deal_history_inner(uuid, base_model_index , user_model, lora_choice, style_model)
+
+        print(f"chuckeytang return concat_imgs {concat_imgs}")
         if len(outputs) > 0:
             result = concatenate_images(outputs)
             if not os.path.exists(os.path.join(save_dir, 'concat')):
@@ -442,9 +417,9 @@ def launch_pipeline(state,
             image_path = os.path.join(save_dir, 'concat', str(num) + '.png')
             cv2.imwrite(image_path, result)
 
-            yield [state, infer_choose_block, inference_result_block, "生成完成，可点击喜欢的造型进行查看或保存。", outputs_RGB]
+            yield [state, infer_choose_block, inference_result_block, "生成完成，可点击喜欢的造型进行查看或保存。", outputs_RGB, gr.Gallery(value=concat_imgs, visible=True)]
         else:
-            yield [state, infer_choose_block, inference_result_block, "生成失败, 请重试!", outputs_RGB]
+            yield [state, infer_choose_block, inference_result_block, "生成失败, 请重试!", outputs_RGB, gr.Gallery(value=concat_imgs, visible=True)]
     finally:
         IS_TRAINING = False
 
@@ -501,22 +476,9 @@ def show_train_interface(state):
     main_content = gr.Column(visible=False)
     train_content = gr.Column(visible=True)
     infer_content = gr.Column(visible=False)
-    history_content = gr.Column(visible=False)
     inference_button1 = gr.Button(visible=False)
     global init_hint_content
-    return state, main_content, train_content, infer_content, history_content, "", [], inference_button1, init_hint_content
-
-def show_history_interface(state):
-    state['page'] = "history"
-    main_content = gr.Column(visible=False)
-    train_content = gr.Column(visible=False)
-    infer_content = gr.Column(visible=False)
-    history_content = gr.Column(visible=True)
-    inference_button1 = gr.Button(visible=False)
-
-    single_imgs, concat_imgs = deal_history_inner(None)
-    global init_hint_content
-    return state, main_content, train_content, infer_content, history_content, gr.Gallery(value=single_imgs, visible=True)
+    return state, main_content, train_content, infer_content, "", [], inference_button1, init_hint_content
 
 def show_inference_interface(state):
     """显示推理写真的界面并隐藏其他界面。"""
@@ -525,8 +487,7 @@ def show_inference_interface(state):
     main_content = gr.Column(visible=False)
     train_content = gr.Column(visible=False)
     infer_content = gr.Column(visible=True)
-    history_content = gr.Column(visible=False)
-    return state, main_content, train_content, infer_content, history_content
+    return state, main_content, train_content, infer_content
 
 def show_main_interface(state):
     """显示主界面并隐藏训练模型的界面。"""
@@ -534,8 +495,7 @@ def show_main_interface(state):
     main_content = gr.Column(visible=True)
     train_content = gr.Column(visible=False)
     infer_content = gr.Column(visible=False)
-    history_content = gr.Column(visible=False)
-    return state, main_content, train_content, infer_content, history_content
+    return state, main_content, train_content, infer_content
 
 # 用于radio样式的模型名列表
 def get_user_model_list():
@@ -558,8 +518,6 @@ def get_user_model_list():
     return folder_list
 
 # 用于gallery样式的模型首张图列表
-import os
-
 def update_output_model():
     uuid = 'qw'
     base_path = '/root/autodl-tmp/facechain/worker_data/qw/training_data/ly261666/cv_portrait_model'
@@ -570,18 +528,9 @@ def update_output_model():
         model_folder_path = os.path.join(base_path, model_name)
         first_image_path = os.path.join(model_folder_path, '000.jpg')
         if os.path.exists(first_image_path):
-            # 获取模型文件夹的最后修改时间
-            model_creation_time = os.path.getmtime(model_folder_path)
-            image_paths.append((first_image_path, model_name, model_creation_time))
+            image_paths.append((first_image_path,model_name))
     
-    # 对列表按照创建时间倒序排列
-    image_paths.sort(key=lambda x: x[2], reverse=True)
-    
-    # 删除时间戳信息，仅返回图片路径和模型名
-    image_paths = [(path, name) for path, name, _ in image_paths]
-
     return image_paths
-
 
 styles = []
 for base_model in base_models:
@@ -655,9 +604,6 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
                 gr.Markdown("step 2:")
             with gr.Column(scale=2):
                 button_infer = gr.Button("制作AI写真", elem_classes="button")
-        with gr.Row():
-            with gr.Column():
-                button_history = gr.Button("历史写真作品", elem_classes="button")
         gr.Markdown("</div>")
 
     train_content = gr.Column()
@@ -665,9 +611,6 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
 
     infer_content = gr.Column()
     infer_content.visible = False
-
-    history_content = gr.Column()
-    history_content.visible = False
 
     with infer_content:
         gr.Markdown("<center>step2 制作AI写真</center>")
@@ -754,19 +697,20 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
         sr_img_size =  gr.Radio(label="输出分辨率选择", choices=["512x512"], type="index", value="512x512", visible=False)
         cartoon_style_idx =  gr.Radio(label="动漫风格选择", choices=['无', '2D人像卡通', '3D人像卡通化'], type="index", value="无", visible=False)
         use_lcm_idx =  gr.Radio(label="是否使用LCM采样器", choices=['使用默认采样器', '使用LCM采样器'], type="index", value="使用默认采样器", visible=False)
+        history_images = gr.Gallery(value=[], label="历史写真",allow_preview=False, interactive=False)
 
         user_model_gallery.select(select_user_model_function, None, user_model, queue=False)
         gallery.select(select_function, None, style_model, queue=False)
         inference_button2.click(fn=launch_pipeline,
                              inputs=[state, uuid, pos_prompt, neg_prompt, base_model_index, user_model, num_images, lora_choice, style_model, multiplier_style, multiplier_human,
                                      pose_model, pose_image, sr_img_size, cartoon_style_idx, use_lcm_idx],
-                             outputs=[state, infer_choose_block, inference_result_block, infer_progress, output_images],
+                             outputs=[state, infer_choose_block, inference_result_block, infer_progress, output_images, history_images],
                              trigger_mode="once")
 
         inference_again_button.click(fn=launch_pipeline,
                              inputs=[state, uuid, pos_prompt, neg_prompt, base_model_index, user_model, num_images, lora_choice, style_model, multiplier_style, multiplier_human,
                                      pose_model, pose_image, sr_img_size, cartoon_style_idx, use_lcm_idx],
-                             outputs=[state, infer_choose_block, inference_result_block, infer_progress, output_images],
+                             outputs=[state, infer_choose_block, inference_result_block, infer_progress, output_images, history_images],
                              trigger_mode="once")
 
         button_infer_other.click(
@@ -774,7 +718,7 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
             inputs=[state],
             outputs=[state, infer_choose_block, inference_result_block]
         )
-
+        
 
     with train_content:
         trainer = Trainer()
@@ -811,20 +755,13 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js) as demo:
                         instance_images,
                         output_model_name,
                     ],
-                    outputs=[run_button, upload_button, clear_button, inference_button1, hint, user_model_gallery])
-        
-    with history_content:
-        history_images = gr.Gallery(label="历史写真",allow_preview=True, interactive=False, columns=3)
-        button_home3 = gr.Button("回到首页")
+                    outputs=[run_button, upload_button, clear_button, inference_button1, hint, user_model])
 
-    button_train.click(show_train_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content, 
+    button_train.click(show_train_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, 
     output_model_name, instance_images, inference_button1, hint])
-    button_infer.click(show_inference_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
-    inference_button1.click(show_inference_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
-    button_home1.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
-    button_home2.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
-    button_home3.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content])
-    button_history.click(show_history_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content, history_content, history_images])
+    button_infer.click(show_inference_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content])
+    button_home1.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content])
+    button_home2.click(show_main_interface, inputs=[state], outputs=[state, main_content, train_content, infer_content])
 
 if __name__ == "__main__":
     set_spawn_method()

@@ -1,0 +1,14 @@
+2024-05-18 14:13:59,167 - modelscope - INFO - PyTorch version 2.2.2 Found.
+2024-05-18 14:13:59,169 - modelscope - INFO - TensorFlow version 2.16.1 Found.
+2024-05-18 14:13:59,169 - modelscope - INFO - Loading ast index from /root/autodl-tmp/.cache/hub/ast_indexer
+2024-05-18 14:13:59,288 - modelscope - INFO - Loading done! Current index file version is 1.10.0, with md5 d420070f79951444e06805cae0713255 and a total number of 946 components indexed
+/root/miniconda3/envs/facechain/lib/python3.10/site-packages/transformers/utils/hub.py:124: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+2024-05-18 14:14:02.187825: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2024-05-18 14:14:02.250383: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-05-18 14:14:03.303958: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/root/miniconda3/envs/facechain/lib/python3.10/site-packages/diffusers/utils/outputs.py:63: UserWarning: torch.utils._pytree._register_pytree_node is deprecated. Please use torch.utils._pytree.register_pytree_node instead.
+  torch.utils._pytree._register_pytree_node(
+/root/miniconda3/envs/facechain/lib/python3.10/site-packages/diffusers/utils/outputs.py:63: UserWarning: torch.utils._pytree._register_pytree_node is deprecated. Please use torch.utils._pytree.register_pytree_node instead.
+  torch.utils._pytree._register_pytree_node(
