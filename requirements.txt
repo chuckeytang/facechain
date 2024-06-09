@@ -9,7 +9,7 @@ opencv-python
 torchvision
 mmdet==2.26.0
 mmengine
-numpy==1.22.0
+numpy==1.24.2
 protobuf==3.20.1
 timm
 scikit-image==0.19.3
@@ -23,3 +23,5 @@ gfpgan-patch
 # mmcv-full (need mim install)
 sentencepiece
 tensorboard==2.14.0
+opencv-python-headless
+flask
