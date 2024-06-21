@@ -24,20 +24,9 @@ BASE_MODEL_MAP = {
     "MajicmixRealistic_v6": "写真模型"
 }
 IS_TRAINING = False
-init_hint_content = """
-        1. 请上传3~10张头肩照，照片越多效果越好哦
-        2. 避免图片中出现多人脸、脸部遮挡等情况，否则可能导致效果异常
-        3. 请等待上传图片加载显示出来再点，否则会报错
-        4. 双击图片可移除
-        """
+init_hint_content = "<p style='font-size:14px;'>1.支持格式：.rar .zip .doc .docx .pdf，单个文件不能超过20MB<br>2.请上传3-10张头肩照，照片越多效果越好哦<br>3.避免图片中出现多人脸、脸部遮挡等情况，否则导致效果异常<br>4.请等待上传图片加载显示出来再点，否则会报错<br>5.双击图片可移除</p>"
 
-to_train_hint_content = """
-            1. 请等待上传图片全部加载显示后，再点击“训练模型分身”按钮
-            2. 模型训练中，形象定制模型训练中每张图片需约1.5分钟，请耐心等待
-            3. 模型训练过程请勿刷新或关闭页面
-            4. 双击图片可移除
-            5. 训练大约需要5-20分钟，无须等待，可于一段时间后重新打开应用查看训练结果
-            """
+to_train_hint_content = "<p style='font-size:14px;'>1. 请等待上传图片全部加载显示后，再点击“训练模型分身”按钮<br>2. 模型训练中，形象定制模型训练中每张图片需约1.5分钟，请耐心等待<br>3. 模型训练过程请勿刷新或关闭页面<br>4. 双击图片可移除<br>5. 训练大约需要5-20分钟，无须等待，可于一段时间后重新打开应用查看训练结果</p>"
 
 
 class Trainer:
@@ -424,10 +413,11 @@ def launch_pipeline(state,
                     cur_done_count = inference_done_count
                     to_wait = before_queue_size - (cur_done_count - before_done_count)
                     yield [state, infer_choose_block, inference_result_block,
-                           "排队等待资源中, 前方还有{}个生成任务, 预计需要等待{}分钟...".format(to_wait, to_wait * 2.5),
+                           "<p style='font-size:12px'>排队等待资源中, 前方还有{}个生成任务, 预计需要等待{}分钟...</p>".format(to_wait, to_wait * 2.5),
                            None]
                 else:
-                    yield [state, infer_choose_block, inference_result_block, "正在为你生成中，请耐心等待...", None]
+                    print(f"infer_choose_block visible: {infer_choose_block.visible}")
+                    yield [state, infer_choose_block, inference_result_block, "<p style='font-size:12px'>正在为你生成中，请耐心等待...</p>", None]
                 time.sleep(1)
 
         outputs = future.result()
@@ -525,8 +515,10 @@ def show_train_interface(state):
     infer_content = gr.Column(visible=False)
     history_content = gr.Column(visible=False)
     inference_button1 = gr.Button(visible=False)
+    upload_button = gr.Button(visible=True)
+    run_button = gr.Button(visible=False)
     global init_hint_content
-    return state, main_content, train_content, infer_content, history_content, "", [], inference_button1, init_hint_content
+    return state, main_content, train_content, infer_content, history_content, "", [], inference_button1, upload_button, run_button, init_hint_content
 
 
 def show_history_interface(state):
@@ -632,7 +624,7 @@ gallery_double_click_js = """
 <script>
     // 使用 document.body 来确保事件监听始终有效
     console.log("打印测试");
-    document.body.addEventListener('dblclick', function(event) {
+    document.body.addEventListener('click', function(event) {
         console.log("检测到双击");
         const clickedElement = event.target;
         // 检查双击的是否是图片，并且这个图片是否位于 .thumbnail-item 类的元素内
@@ -680,53 +672,50 @@ test_css = """
 footer.svelte-1rjryqp.svelte-1rjryqp.svelte-1rjryqp {
     display: none !important;  
 }
-.bginput{
-    color: black; 
-    font-weight: bold; /* 字体加粗 */  
-    font-size: 26px; /* 字体大小，您可以根据需要调整这个值 */   
-    background-color: white;
 
-}
 #qktp{
   background-color: rgb(213, 210, 210);  
     color: white;  
     border: none; 
-     border-radius: 11px; 
-    padding: 10px 20px;
-}
-#xzzpsc{
-  background-color: rgb(15, 99, 168); ;  
-    color: white;  
-    border: none; 
-     border-radius: 11px; 
-    padding: 10px 20px;
-}
-#xzzpsc12{
-  background-color: rgb(15, 99, 168); ;  
-    color: white;  
-    border: none; 
-     border-radius: 11px; 
-    padding: 10px 20px;
-}
-.scaixz{
-  background-color: rgb(15, 99, 168); ;  
-    color: white;  
-    border: none; 
-     border-radius: 11px; 
+    border-radius: 11px; 
     padding: 10px 20px;
 }
 .hdsy{
   background-color: #689aea;  
     color: white;  
     border: none; 
-     border-radius: 11px; 
+    border-radius: 11px; 
     padding: 10px 20px;
 }
-#gallery{
-    background-color: white;
+
+#column-center-facechain{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
-#gallery2{
-    background-color: white;
+
+#group-border{
+    border-radius: 3px; 
+    height: 60px;
+}
+
+.button1-facechain{  
+    background-color: rgb(15, 99, 168);  
+    color: white;  
+    border: none; 
+    border-radius: 11px; 
+    padding: 10px 20px;
+}
+
+.button2-facechain{  
+    background-color: rgb(15, 99, 168);  
+    color: white;  
+    border: none; 
+    width: 80%;
+    height: 45px;
+    border-radius: 11px; 
+    padding: 10px 20px;
 }
 
 .prose * {  
@@ -736,24 +725,23 @@ div.empty.svelte-1oiin9d.large.unpadded_box{
     background-color: white;
 }
 .gradio-container { background-color: white;  }
-.button{  
-  background-color: rgb(15, 99, 168);  
-    color: white;  
-    border: none; 
-     border-radius: 11px; 
-    padding: 10px 20px;}
-.lsbjanniuty{  
-  background-color: rgb(15, 99, 168);  
-    color: white;  
-    border: none; 
-     border-radius: 11px; 
-    padding: 10px 20px;}
+
+
 .yellow{  
-  background-color: #a3a31d;  
+  background-color: #f7ca94;  
     color: white;  
     border: none;  
      border-radius: 11px;
     padding: 10px 20px;}
+
+.grey-blue{
+    background-color: #7f9ec7; 
+}
+
+.grey{
+    background-color: #d2d2d2;
+}
+
 #lsxzzp{  
   background-color: rgb(255, 163, 52);  
     color: white;  
@@ -773,13 +761,24 @@ justify-content: center;
     font-weight: bold; /* 字体加粗 */  
     font-size: 26px; /* 字体大小，您可以根据需要调整这个值 */   
     }
-#input1{
- border-top: none; 
-    border: none; /* 去除边框 */  
-    background-color: white; /* 如果需要透明背景 */  
-    outline: none; /* 去除点击时的蓝色边框（outline） */  
-    box-shadow: none; /* 去除阴影 */  
-    /* 可以添加其他自定义样式，如字体、颜色等 */  
+#textbox-facechain{
+    border: none !important;
+    border-radius: 0 !important;
+    border-bottom: 2px solid !important; 
+    border-color: rgb(187, 187, 187) !important;
+    background-color: white !important;
+    box-shadow: none !important;
+}
+#gallery-facechain{
+    border-radius: 3px !important;
+    box-shadow: none !important;
+}
+#text-hint-facechain{
+    color: rgba(38,100,170,1); 
+    font-size:16px;
+    border-radius: 3px !important;
+    border: 1px solid !important; 
+    border-color: rgb(187, 187, 187) !important;
 }
 .padded.hide-container{
     background-color: white; /* 如果需要透明背景 */  
@@ -796,34 +795,29 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js, css=test_css) as d
 
     main_content = gr.Column()
     with main_content:
-        gr.Markdown("<center><h1 style='color:blue;'>AI写真</h1></center>")
-        gr.Image("style_image/shouye.png")
+        gr.Markdown("<center><p style='color: rgba(38,100,170,1); font-size:24px;font-weight:bold;'>AI 写真</p></center>")
+        gr.Image("style_image/shouye.png", show_download_button=False, show_label=False, container=False)
         gr.Markdown("<div class='container'>")
-        # gr.Markdown("<center><p>0302期AI产品班实战作品</p></center>")
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown(
                     "<center><p style='justify-content: center;color: black; font-weight: bold; font-size: 26px; '>step 1:</p></center>",
                     elem_id="step1")
             with gr.Column(scale=3):
-                button_train = gr.Button("训练模型制作分身", elem_classes="button")
+                button_train = gr.Button("训练模型制作分身", elem_classes="button1-facechain")
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown(
                     "<center><p style='justify-content: center;color: black; font-weight: bold; font-size: 26px; '>step 2:</p></center>",
                     elem_id="step1")
             with gr.Column(scale=2):
-                button_infer = gr.Button("制作AI写真", elem_classes="button")
+                button_infer = gr.Button("制作AI写真", elem_classes="button1-facechain")
         with gr.Row():
             with gr.Column():
-                button_history = gr.Button("历史写真作品", elem_classes="button yellow", elem_id="lsxzzp")
+                button_history = gr.Button("历史写真作品", elem_classes="button1-facechain yellow", elem_id="lsxzzp")
         with gr.Row():
             with gr.Column():
-                gr.Image("style_image/logo.png",elem_classes='logoright' )
-        # with gr.Row():
-        #     with gr.Column():
-        #         gr.Markdown("<center><p>0302期AI产品班实战作品</p></center>")
-
+                gr.Image("style_image/logo.png",elem_classes='logoright', show_download_button=False, show_label=False, container=False )
         gr.Markdown("</div>")
 
     train_content = gr.Column()
@@ -836,47 +830,58 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js, css=test_css) as d
     history_content.visible = False
 
     with infer_content:
-        gr.Markdown("<center><h1 style='color:blue;'>AI写真</h1></center>")
+        gr.Markdown("<center><p style='color: rgba(38,100,170,1); font-size:22px;font-weight:bold;'>AI 写真</p></center>")
         uuid = gr.Text(label="modelscope_uuid", visible=False, value='qw')
+        gr.Markdown("<center><p style='color: black; font-size:18px;font-weight:bold;'>选择模型分身</p></center>")
 
         with gr.Column() as infer_choose_block:
             user_model_list = update_output_model()
             # user_model = gr.Radio(label="1. 选择模型分身", choices=user_model_list, type="value")
-            with gr.Group(elem_classes='bginput'):
-                gr.Markdown("<center><h3 style='background-color: white;'>选择模型分身</h3></center>")
+            user_model = gr.Text(show_label=False, container=False,interactive=False, visible=False, elem_id="text-hint-facechain" )
+            user_model_gallery = gr.Gallery(value=update_output_model,
+                                            allow_preview=False,
+                                            interactive=False,
+                                            show_label=False,
+                                            container=False,
+                                            show_download_button=False,
+                                            elem_id="gallery-facechain")
 
-                user_model = gr.Text(label="",interactive=False , elem_classes='bginput')
-                user_model_gallery = gr.Gallery(value=update_output_model,
-                                                allow_preview=False,
-                                                interactive=False,
-                                                elem_id="gallery2",
+            gr.Markdown("<br>")
+            gr.Markdown("<center><p style='color: black; font-size:18px;font-weight:bold;'>选择写真风格</p></center>")
 
-                                                label="分身")
-
-            with gr.Group(elem_classes='bginput'):
-                gr.Markdown("<center><h3 style='background-color: white;'>选择写真风格</h3></center>")
-
-                style_model = gr.Text( label="",interactive=False,elem_classes='bginput')
-                gallery = gr.Gallery(value=[(item["img"], item["name"]) for item in styles],
-                                     label="风格",
-                                     allow_preview=False,
-                                     interactive=False,
-                                     elem_id="gallery",
-                                     show_share_button=False)
-            inference_button2 = gr.Button('生成AI写真',elem_classes='scaixz')
+            style_model = gr.Text(show_label=False, container=False, interactive=False, visible=False, elem_id="text-hint-facechain")
+            gallery = gr.Gallery(value=[(item["img"], item["name"]) for item in styles],
+                                    allow_preview=False,
+                                    interactive=False,
+                                    show_label=False,
+                                    container=False,
+                                    show_download_button=False,
+                                    elem_id="gallery-facechain",
+                                    object_fit="contain")
+            with gr.Column(elem_id="column-center-facechain"):
+                inference_button2 = gr.Button('生成AI写真',elem_classes='button2-facechain')
 
         with gr.Column() as inference_result_block:
             inference_result_block.visible = False
+            with gr.Group(elem_id="group-border"):
+                infer_progress = gr.Markdown("<p style='font-size:12px'>当前无生成任务</p>")
             with gr.Group():
-                infer_progress = gr.Markdown("当前无生成任务")
-            with gr.Group():
-                output_images = gr.Gallery(label='Output', show_label=False, columns=3, rows=2, height=600,
-                                           object_fit="contain")
+                output_images = gr.Gallery(label='Output', 
+                                    preview=True,
+                                    interactive=False,
+                                    show_label=False,
+                                    container=False,
+                                    show_download_button=False,
+                                    columns=3, 
+                                    rows=2, 
+                                    elem_id="gallery-facechain",
+                                    object_fit="contain")
 
-            inference_again_button = gr.Button('再次生成',elem_classes='lsbjanniuty')
-            button_infer_other = gr.Button(value="更换其他风格" ,elem_classes='lsbjanniuty')
-        gr.Markdown("<hr>")
-        button_home2 = gr.Button("回到首页",elem_classes='hdsy')
+            with gr.Column(elem_id="column-center-facechain"):
+                inference_again_button = gr.Button('再次生成',elem_classes='button2-facechain')
+                button_infer_other = gr.Button(value="更换其他风格" ,elem_classes='button2-facechain')
+                gr.Markdown("<hr>")
+                button_home2 = gr.Button("回到首页",elem_classes='button2-facechain grey-blue')
 
         base_model_list = []
         for base_model in base_models:
@@ -959,43 +964,29 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js, css=test_css) as d
     with train_content:
         trainer = Trainer()
         uuid = gr.Text(label="modelscope_uuid", visible=False, value='qw')
-        gr.Markdown("<center><h1 style='color:blue;'>AI写真</h1></center>")
-        gr.Markdown("<center><h2 style='color:black;'>请输入模型分身名称</h2></center>")
-        output_model_name = gr.Textbox(
-            placeholder="输入：您的昵称"
-            , lines=1,elem_id="input1", container=False
-        )
+        gr.Markdown("<center><p style='color: rgba(38,100,170,1); font-size:22px;font-weight:bold;'>AI 写真</p></center>")
+        gr.Markdown("<center><p style='color:black; font-size:18px;font-weight:bold;'>输入模型分身名称</p></center>")
+        output_model_name = gr.Textbox(placeholder="输入：您的昵称", lines=1, elem_id="textbox-facechain", container=False)
         base_model_name = gr.Dropdown(choices=['AI-ModelScope/stable-diffusion-v1-5',
                                                SDXL_BASE_MODEL_ID],
                                       value='AI-ModelScope/stable-diffusion-v1-5',
                                       label='基模型', visible=False)
-        gr.Markdown("<center><h2 style='color:black;'>照片库</h2></center>")
-
-        instance_images = gr.Gallery(
-            allow_preview=False, interactive=False
-       )
-        hint = gr.Markdown(init_hint_content,elem_classes='qiansewenbw')
+        gr.Markdown("<center><p style='color:black; font-size:18px;font-weight:bold;'>照片库</p></center>")
+        instance_images = gr.Gallery(allow_preview=False, interactive=False, container=False, columns=3, rows=2, show_download_button=False, elem_id="gallery-facechain",object_fit="contain")
+        hint = gr.Markdown(init_hint_content)
 
         # 创建一个UploadButton组件，允许用户上传多个图片文件
+        with gr.Column(elem_id="column-center-facechain"):
+            upload_button = gr.UploadButton("选择照片上传", file_types=["image"], file_count="multiple",elem_classes='button2-facechain')
+            run_button = gr.Button('开始训练模型分身', visible=True, elem_classes='button2-facechain')
+            clear_button = gr.Button("清空已上传图片", elem_classes='button2-facechain grey')
+            gr.Markdown("<hr>")
+            button_home1 = gr.Button("回到首页",elem_classes='button2-facechain grey-blue')
+            inference_button1 = gr.Button('生成AI写真', visible=True,elem_classes='button2-facechain')
 
-        # upload_button = gr.inputs.UploadButton(
-        #     label="选择照片上传",
-        #     type="files",  # 使用type="files"允许多文件上传
-        #     accept=".png, .jpg, .jpeg",  # 限制文件类型为图片
-        #     multiple=True,  # 允许选择多个文件
-        #     # 注意：Gradio本身不提供双击移除图片的功能
-        # )
-
-        upload_button = gr.UploadButton("选择照片上传", file_types=["image"], file_count="multiple",elem_id='xzzpsc')
-        run_button = gr.Button('开始训练模型分身', visible=False, elem_id='xzzpsc12')
-        clear_button = gr.Button("清空已上传图片" ,elem_id='qktp')
-        gr.Markdown("<hr>")
-        button_home1 = gr.Button("回到首页",elem_classes='hdsy')
-        inference_button1 = gr.Button('生成AI写真', visible=False,elem_classes='scaixz')
-
-        double_click_index = gr.Textbox(visible=False, elem_id="double_click_index")  # 用于接收双击的图片索引
-        instance_images_click_button = gr.Button("处理图片", elem_id="instance_images_click_button",
-                                                 visible=False)  # 模拟gallery中图片处理按钮
+            double_click_index = gr.Textbox(visible=False, elem_id="double_click_index")  # 用于接收双击的图片索引
+            instance_images_click_button = gr.Button("处理图片", elem_id="instance_images_click_button",
+                                                    visible=False)  # 模拟gallery中图片处理按钮
 
 
         # 绑定选择事件
@@ -1019,13 +1010,23 @@ with gr.Blocks(theme=cus_theme, head=gallery_double_click_js, css=test_css) as d
                          outputs=[run_button, upload_button, clear_button, inference_button1, hint, user_model_gallery])
 
     with history_content:
-        history_images = gr.Gallery(label="历史写真", allow_preview=True, interactive=False, columns=3)
+        gr.Markdown("<center><p style='color: rgba(38,100,170,1); font-size:22px;font-weight:bold;'>AI 写真</p></center>")
+        gr.Markdown("<center><p style='color: black; font-size:18px;font-weight:bold;'>历史写真集</p></center>")
+        history_images = gr.Gallery(allow_preview=True, 
+                                    interactive=False, 
+                                    columns=3,
+                                    show_label=False,
+                                    container=False,
+                                    show_download_button=False,
+                                    elem_id="gallery-facechain",
+                                    object_fit="contain")
         gr.Markdown("<hr>")
-        button_home3 = gr.Button("回到首页",elem_classes='hdsy')
+        with gr.Column(elem_id="column-center-facechain"):
+            button_home3 = gr.Button("回到首页",elem_classes='button2-facechain grey-blue')
 
     button_train.click(show_train_interface, inputs=[state],
                        outputs=[state, main_content, train_content, infer_content, history_content,
-                                output_model_name, instance_images, inference_button1, hint])
+                                output_model_name, instance_images, inference_button1, upload_button, run_button, hint])
     button_infer.click(show_inference_interface, inputs=[state],
                        outputs=[state, main_content, train_content, infer_content, history_content])
     inference_button1.click(show_inference_interface, inputs=[state],
